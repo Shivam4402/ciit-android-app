@@ -1,0 +1,31 @@
+pluginManagement {
+    includeBuild("../node_modules/@react-native/gradle-plugin")
+}
+
+plugins {
+    id("com.facebook.react.settings")
+}
+
+extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
+    ex.autolinkLibrariesFromCommand()
+}
+
+rootProject.name = 'CiitApp'
+include ':app'
+includeBuild('../node_modules/@react-native/gradle-plugin')
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)   // ✅ IMPORTANT
+    repositories {
+        google()
+        mavenCentral()
+
+        // 🔥 CRITICAL FIX (RN local repo)
+        maven { url("$rootDir/../node_modules/react-native/android") }
+
+        // 🔥 CRITICAL FIX (AsyncStorage repo)
+        maven { url("$rootDir/../node_modules/@react-native-async-storage/async-storage/android") }
+
+        maven { url 'https://www.jitpack.io' }
+    }
+}
