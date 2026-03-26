@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import {
   getLeadSources,
   getEnquiryFors,
   getTopics,
   getQualifications,
   getBranches
-} from '../services/enquiryApi';
+} from "../services/enquiryApi";
 
 export const useEnquiry = () => {
   const [leadSources, setLeadSources] = useState([]);
@@ -15,12 +15,18 @@ export const useEnquiry = () => {
   const [branches, setBranches] = useState([]);
 
   useEffect(() => {
-    loadAll();
+    fetchData();
   }, []);
 
-  const loadAll = async () => {
+  const fetchData = async () => {
     try {
-      const [ls, ef, tp, ql, br] = await Promise.all([
+      const [
+        lead,
+        enquiry,
+        topic,
+        qual,
+        branch
+      ] = await Promise.all([
         getLeadSources(),
         getEnquiryFors(),
         getTopics(),
@@ -28,14 +34,14 @@ export const useEnquiry = () => {
         getBranches()
       ]);
 
-      setLeadSources(ls.data.data);
-      setEnquiryFors(ef.data.data);
-      setTopics(tp.data.data);
-      setQualifications(ql.data.data);
-      setBranches(br.data.data);
+      setLeadSources(lead || []);
+      setEnquiryFors(enquiry || []);
+      setTopics(topic || []);
+      setQualifications(qual || []);
+      setBranches(branch || []);
 
     } catch (err) {
-      console.log("Error loading dropdown data", err);
+      console.log("Error loading enquiry data", err);
     }
   };
 

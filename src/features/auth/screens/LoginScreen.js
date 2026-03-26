@@ -7,7 +7,8 @@ import {
   StyleSheet,
   Image,
   ActivityIndicator,
-  SafeAreaView
+  SafeAreaView,
+  Button
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginUser } from '../authSlice';
@@ -82,6 +83,17 @@ const LoginScreen = ({ navigation }) => {
         </Text>
       </TouchableOpacity>
 
+      <TouchableOpacity onPress={() => navigation.navigate('EnquiryList')}>
+        <Text style={styles.link}>
+          View All Enquiries
+        </Text>
+      </TouchableOpacity>
+
+      {/* <Button
+        title="View All Enquiries"
+        onPress={() => navigation.navigate('EnquiryList')}
+      /> */}
+
     </SafeAreaView>
   );
 };
@@ -99,7 +111,7 @@ const styles = StyleSheet.create({
   logoContainer: {
     alignItems: 'center',
     marginBottom: 20
-  },  
+  },
 
   logo: {
     width: 140,

@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { useEnquiry } from '../hooks/useEnquiry';
 import { createEnquiry } from '../services/enquiryApi';
-import { Picker } from '@react-native-picker/picker';
+import { Dropdown } from 'react-native-element-dropdown';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 const EnquiryFormScreen = ({ navigation }) => {
@@ -40,6 +40,20 @@ const EnquiryFormScreen = ({ navigation }) => {
             setList([...list, id]);
         }
     };
+
+    // Qualification dropdown data
+    const qualificationOptions = qualifications?.map(q => ({
+        label: q.qualification,
+        value: q.qualification
+    }));
+
+    // Branch dropdown data
+    const branchOptions = branches?.map(b => ({
+        label: b.branchName,
+        value: b.branchId
+    }));
+
+    
 
     // 🔹 validation
     const validate = () => {
@@ -211,7 +225,7 @@ const EnquiryFormScreen = ({ navigation }) => {
                             mode="date"
                             display="default"
                             maximumDate={new Date()}
-                            onChange={(event, selectedDate) => {
+                            onValueChange={(event, selectedDate) => {
                                 setShowDobPicker(false);
                                 if (selectedDate) {
                                     setDob(selectedDate);
@@ -263,23 +277,43 @@ const EnquiryFormScreen = ({ navigation }) => {
                     <Text style={styles.label}>Qualification</Text>
 
                     <View style={styles.pickerContainer}>
-                        <Picker
-                            selectedValue={form.qualification}
-                            onValueChange={(itemValue) =>
-                                setForm({ ...form, qualification: itemValue })
-                            }
-                        >
-                            <Picker.Item label=" Select Qualification " value="" color="gray" />
+                        <Dropdown
+                            style={styles.dropdown}
+                            data={qualificationOptions}
+                            labelField="label"
+                            valueField="value"
+                            placeholder="Select Qualification"
+                            value={form.qualification}
+                            onChange={item => {
+                                setForm({ ...form, qualification: item.value });
+                            }}
+                            search
+                            searchPlaceholder="Search qualification..."
+                            maxHeight={300}
+                            containerStyle={{
+                                borderRadius: 14,
+                                backgroundColor: '#fff',
+                                elevation: 6,
+                                shadowColor: '#000',
+                                shadowOffset: { width: 0, height: 4 },
+                                shadowOpacity: 0.15,
+                                shadowRadius: 6,
+                            }}
+
+                            placeholderStyle={{
+                                fontSize: 14,
+                                color: '#999'
+                            }}
+
+                            selectedTextStyle={{
+                                fontSize: 15,
+                                color: '#333'
+                            }}
+
+                            activeColor="#E3F2FD"
 
 
-                            {qualifications.map((item) => (
-                                <Picker.Item
-                                    key={item.qualificationId}
-                                    label={item.qualification}
-                                    value={item.qualification}
-                                />
-                            ))}
-                        </Picker>
+                        />
                     </View>
 
                     {errors.qualification && <Text style={styles.error}>{errors.qualification}</Text>}
@@ -289,22 +323,41 @@ const EnquiryFormScreen = ({ navigation }) => {
                     <Text style={styles.label}>Branch</Text>
 
                     <View style={styles.pickerContainer}>
-                        <Picker
-                            selectedValue={form.branchId}
-                            onValueChange={(itemValue) =>
-                                setForm({ ...form, branchId: itemValue })
-                            }
-                        >
-                            <Picker.Item label=" Select Branch " value="" color="gray" />
+                        <Dropdown
+                            style={styles.dropdown}
+                            data={branchOptions}
+                            labelField="label"
+                            valueField="value"
+                            placeholder="Select Branch"
+                            value={form.branchId}
+                            onChange={item => {
+                                setForm({ ...form, branchId: item.value });
+                            }}
+                            search
+                            searchPlaceholder="Search branch..."
+                            maxHeight={300}
+                            containerStyle={{
+                                borderRadius: 14,
+                                backgroundColor: '#fff',
+                                elevation: 6,
+                                shadowColor: '#000',
+                                shadowOffset: { width: 0, height: 4 },
+                                shadowOpacity: 0.15,
+                                shadowRadius: 6,
+                            }}
 
-                            {branches.map((item) => (
-                                <Picker.Item
-                                    key={item.branchId}
-                                    label={item.branchName}
-                                    value={item.branchId}
-                                />
-                            ))}
-                        </Picker>
+                            placeholderStyle={{
+                                fontSize: 14,
+                                color: '#999'
+                            }}
+
+                            selectedTextStyle={{
+                                fontSize: 15,
+                                color: '#333'
+                            }}
+
+                            activeColor="#E3F2FD"
+                        />
                     </View>
 
                     {errors.branchId && <Text style={styles.error}>{errors.branchId}</Text>}
@@ -313,7 +366,7 @@ const EnquiryFormScreen = ({ navigation }) => {
                     <Text style={styles.label}>How did you come to know about us?</Text>
 
                     <View style={styles.chipGrid}>
-                        {leadSources.map(item => {
+                        {leadSources?.map(item => {
                             const isSelected = selectedLeadSources.includes(item.sourceId);
 
                             return (
@@ -354,7 +407,7 @@ const EnquiryFormScreen = ({ navigation }) => {
                     <Text style={styles.label}>Enquiry For</Text>
 
                     <View style={styles.chipGrid}>
-                        {enquiryFors.map(item => {
+                        {enquiryFors?.map(item => {
                             const isSelected = selectedEnquiryFors.includes(item.enquiryForId);
 
                             return (
@@ -394,7 +447,7 @@ const EnquiryFormScreen = ({ navigation }) => {
                     <Text style={styles.label}>Interested Training Topics</Text>
 
                     <View style={styles.chipGrid}>
-                        {topics.map(item => {
+                        {topics?.map(item => {
                             const isSelected = selectedTopics.includes(item.topicId);
 
                             return (
@@ -427,17 +480,7 @@ const EnquiryFormScreen = ({ navigation }) => {
                             );
                         })}
                     </View>
-                    {/* <View style={{ marginTop: 20 }}>
-                        <TouchableOpacity
-                            style={styles.submitButton}
-                            onPress={handleSubmit}
-                            disabled={loading}
-                        >
-                            <Text style={styles.submitText}>
-                                {loading ? "Submitting..." : "SUBMIT ENQUIRY"}
-                            </Text>
-                        </TouchableOpacity>
-                    </View> */}
+
                 </View>
 
             </ScrollView>
@@ -524,20 +567,6 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         marginBottom: 12,
     },
-
-    // submitButton: {
-    //     backgroundColor: '#6C4CF1',
-    //     padding: 16,
-    //     borderRadius: 10,
-    //     alignItems: 'center',
-    //     marginTop: 20
-    // },
-
-    // submitText: {
-    //     color: '#fff',
-    //     fontWeight: 'bold',
-    //     fontSize: 16
-    // },
 
     chipGrid: {
         flexDirection: 'row',
@@ -636,6 +665,19 @@ const styles = StyleSheet.create({
         backgroundColor: '#B0BEC5'
     },
 
+    dropdown: {
+        height: 55,
+        backgroundColor: '#fff',
+        borderRadius: 14,
+        paddingHorizontal: 14,
+        marginBottom: 14,
+
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+    },
     error: {
         color: "red",
         marginBottom: 5
