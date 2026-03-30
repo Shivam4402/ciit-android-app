@@ -23,7 +23,7 @@ const NAV_ITEMS = [
     { label: 'Students List', routeName: 'StudentsList', icon: 'groups' },
 ];
 
-const PrivateLayout = ({ title, children }) => {
+const PrivateLayout = ({ title, children, navItems = NAV_ITEMS }) => {
     const navigation = useNavigation();
     const route = useRoute();
     const dispatch = useDispatch();
@@ -39,6 +39,8 @@ const PrivateLayout = ({ title, children }) => {
                 text: 'Yes',
                 onPress: async () => {
                     await AsyncStorage.removeItem('token');
+                    await AsyncStorage.removeItem('userType');
+                    await AsyncStorage.removeItem('studentProfile');
                     dispatch(logout());
                 },
             },
@@ -153,7 +155,7 @@ const PrivateLayout = ({ title, children }) => {
 
                             <Text style={styles.sectionLabel}>Main Menu</Text>
 
-                            {NAV_ITEMS.map((item) => {
+                            {navItems.map((item) => {
                                 const isActive = activeRouteName === item.routeName;
 
                                 return (
