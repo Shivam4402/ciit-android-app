@@ -18,14 +18,12 @@ const LoginScreen = ({ navigation }) => {
   const { loading, error } = useSelector((state) => state.auth);
 
   const [userName, setUserName] = useState('');
-  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   const handleLogin = async () => {
-    const result = await dispatch(loginUser({ userName, email }));
-
-    if (result.meta.requestStatus === 'fulfilled') {
-      navigation.replace('Dashboard');
-    }
+    const result = await dispatch(loginUser({ userName, password }));
+    // On success, `AppNavigator` will switch to `PrivateNavigator` based on the stored token.
+    if (result.meta.requestStatus === 'fulfilled') return;
   };
 
   return (
@@ -55,12 +53,12 @@ const LoginScreen = ({ navigation }) => {
         />
 
         <TextInput
-          placeholder="Email"
+          placeholder="Password"
           placeholderTextColor="#888"
           style={styles.input}
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
         />
 
         {/* Login Button */}

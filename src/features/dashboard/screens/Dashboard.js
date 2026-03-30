@@ -1,11 +1,14 @@
 import React from 'react';
 import { View, Text } from 'react-native';
+import PrivateLayout from '../../../components/PrivateLayout';
 
 const Dashboard = () => {
   return (
-    <View>
-      <Text>Welcome to Dashboard</Text>
-    </View>
+    <PrivateLayout title="Dashboard">
+      <View>
+        <Text>Welcome to Dashboard</Text>
+      </View>
+    </PrivateLayout>
   );
 };
 
