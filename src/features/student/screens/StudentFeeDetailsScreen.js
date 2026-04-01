@@ -7,8 +7,8 @@ import { getStudentDetailsById } from '../services/studentPortalApi';
 const STUDENT_NAV_ITEMS = [
   { label: 'Dashboard', routeName: 'StudentDashboard', icon: 'dashboard' },
 //   { label: 'Course List', routeName: 'StudentCourses', icon: 'menu-book' },
-  { label: 'My Batches', routeName: 'StudentBatches', icon: 'groups' },
-  { label: 'Course Fee Details', routeName: 'StudentFeeDetails', icon: 'account-balance-wallet' },
+{ label: 'My Courses', routeName: 'StudentFeeDetails', icon: 'menu-book' },
+{ label: 'My Batches', routeName: 'StudentBatches', icon: 'groups' },
 ];
 
 const getValue = (...values) => values.find((value) => value !== undefined && value !== null);
@@ -194,7 +194,7 @@ const StudentFeeDetailsScreen = () => {
 
   if (loading) {
     return (
-      <PrivateLayout title="Course Fee Details" navItems={STUDENT_NAV_ITEMS}>
+      <PrivateLayout title="My Courses" navItems={STUDENT_NAV_ITEMS}>
         <View style={styles.loaderWrap}>
           <ActivityIndicator size="large" color="#2563EB" />
         </View>
@@ -203,7 +203,7 @@ const StudentFeeDetailsScreen = () => {
   }
 
   return (
-    <PrivateLayout title="Course Fee Details" navItems={STUDENT_NAV_ITEMS}>
+    <PrivateLayout title="My Courses" navItems={STUDENT_NAV_ITEMS}>
       <View style={styles.container}>
         {error ? (
           <View style={styles.errorCard}>

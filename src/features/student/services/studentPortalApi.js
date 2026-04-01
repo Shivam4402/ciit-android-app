@@ -33,3 +33,26 @@ export const getStudentWiseBatchDetails = async (studentId) => {
         throw error;
     }
 };
+
+export const getStudentBatchAttendance = async (batchId, registrationId) => {
+    try {
+        if (!batchId || !registrationId) return [];
+
+        const response = await axiosClient.get(
+            `/students/student-batch-attendance/${batchId}/${registrationId}`,
+        );
+
+        if (response?.data && response.data.data !== undefined) {
+            return response.data.data || [];
+        }
+
+        return response?.data || [];
+    } catch (error) {
+        if (error?.response?.status === 404) {
+            return [];
+        }
+
+        console.log('Error fetching student attendance:', error);
+        throw error;
+    }
+};
