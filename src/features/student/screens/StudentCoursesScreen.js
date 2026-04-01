@@ -6,7 +6,9 @@ import { getStudentDetailsById } from '../services/studentPortalApi';
 
 const STUDENT_NAV_ITEMS = [
   { label: 'Dashboard', routeName: 'StudentDashboard', icon: 'dashboard' },
-  { label: 'Your Courses', routeName: 'StudentCourses', icon: 'menu-book' },
+  // { label: 'Course List', routeName: 'StudentCourses', icon: 'menu-book' },
+  { label: 'My Batches', routeName: 'StudentBatches', icon: 'groups' },
+  { label: 'Course Fee Details', routeName: 'StudentFeeDetails', icon: 'account-balance-wallet' },
 ];
 
 const getValue = (...values) => values.find((value) => value !== undefined && value !== null);

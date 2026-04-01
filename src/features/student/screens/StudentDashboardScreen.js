@@ -1,34 +1,38 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { useSelector } from 'react-redux';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { useSelector } from 'react-redux';  
+import { useNavigation } from '@react-navigation/native';
 import PrivateLayout from '../../../components/PrivateLayout';
 
 const STUDENT_NAV_ITEMS = [
   { label: 'Dashboard', routeName: 'StudentDashboard', icon: 'dashboard' },
-  { label: 'Course List', routeName: 'StudentCourses', icon: 'menu-book' },
+  // { label: 'Course List', routeName: 'StudentCourses', icon: 'menu-book' },
+  { label: 'My Batches', routeName: 'StudentBatches', icon: 'groups' },
+  { label: 'Course Fee Details', routeName: 'StudentFeeDetails', icon: 'account-balance-wallet' },
 ];
 
 const StudentDashboardScreen = () => {
+  const navigation = useNavigation();
   const student = useSelector((state) => state.auth.student);
+  const studentName = `${student?.StudentName || student?.studentName || 'Student'} ${student?.LastName || student?.lastName || ''}`.trim();
 
   return (
-    <PrivateLayout title="Student Dashboard" navItems={STUDENT_NAV_ITEMS}>
+    <PrivateLayout title="Dashboard" navItems={STUDENT_NAV_ITEMS}>
       <View style={styles.container}>
         <View style={styles.card}>
-          <Text style={styles.label}>Welcome</Text>
-          <Text style={styles.name}>
-            {student?.StudentName || student?.studentName || 'Student'}{' '}
-            {student?.LastName || student?.lastName || ''}
-          </Text>
-
-          <View style={styles.divider} />
-
-          <Text style={styles.meta}>Student ID: {student?.StudentId || student?.studentId || 'N/A'}</Text>
-          <Text style={styles.meta}>Code: {student?.StudentCode || student?.studentCode || 'N/A'}</Text>
-          <Text style={styles.meta}>Email: {student?.EmailAddress || student?.emailAddress || 'N/A'}</Text>
-          <Text style={styles.meta}>Mobile: {student?.MobileNumber || student?.mobileNumber || 'N/A'}</Text>
-          <Text style={styles.meta}>Branch: {student?.BranchId || student?.branchId || 'N/A'}</Text>
+          <Text style={styles.label}>Welcome back</Text>
+          <Text style={styles.name}>{studentName}</Text>
         </View>
+      {/*
+        <View style={styles.quickActionCard}>
+          <Text style={styles.quickTitle}>Quick Actions</Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('StudentFeeDetails')}
+            style={styles.primaryActionBtn}
+          >
+            <Text style={styles.primaryActionText}>View Course Fee Details</Text>
+          </TouchableOpacity>
+        </View> */}
       </View>
     </PrivateLayout>
   );
@@ -46,6 +50,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     padding: 16,
+    marginBottom: 12,
   },
   label: {
     fontSize: 13,
@@ -58,14 +63,35 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#0F172A',
   },
-  divider: {
-    height: 1,
-    backgroundColor: '#E2E8F0',
-    marginVertical: 14,
-  },
-  meta: {
+  helperText: {
+    marginTop: 8,
     fontSize: 14,
-    color: '#334155',
-    marginBottom: 8,
+    color: '#475569',
+    lineHeight: 20,
+  },
+  quickActionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 16,
+  },
+  quickTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 12,
+  },
+  primaryActionBtn: {
+    backgroundColor: '#1D4ED8',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+  },
+  primaryActionText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 14,
   },
 });

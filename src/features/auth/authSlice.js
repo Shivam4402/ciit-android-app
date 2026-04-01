@@ -9,12 +9,16 @@ export const loginUser = createAsyncThunk(
             const response = await loginApi(data);
 
             const token = response.token || response.Token;
+            const staff = {
+                userName: data?.userName || data?.UserName || '',
+            };
 
             await AsyncStorage.setItem('token', token);
             await AsyncStorage.setItem('userType', 'staff');
             await AsyncStorage.removeItem('studentProfile');
+            await AsyncStorage.setItem('staffProfile', JSON.stringify(staff));
 
-            return { token, userType: 'staff', student: null };
+            return { token, userType: 'staff', student: null, staff };
         } catch (error) {
             return rejectWithValue('Login failed');
         }
@@ -27,8 +31,10 @@ export const loadUserFromStorage = createAsyncThunk(
     const token = await AsyncStorage.getItem('token');
         const userType = await AsyncStorage.getItem('userType');
         const studentProfile = await AsyncStorage.getItem('studentProfile');
+        const staffProfile = await AsyncStorage.getItem('staffProfile');
 
         let student = null;
+        let staff = null;
         if (studentProfile) {
             try {
                 student = JSON.parse(studentProfile);
@@ -37,10 +43,19 @@ export const loadUserFromStorage = createAsyncThunk(
             }
         }
 
+        if (staffProfile) {
+            try {
+                staff = JSON.parse(staffProfile);
+            } catch {
+                staff = null;
+            }
+        }
+
         return {
             token,
             userType,
             student,
+            staff,
         };
   }
 );
@@ -61,6 +76,7 @@ export const loginStudent = createAsyncThunk(
                         } else {
                             await AsyncStorage.removeItem('studentProfile');
                         }
+                        await AsyncStorage.removeItem('staffProfile');
 
                         return { token, student, userType: 'student' };
                 } catch (error) {
@@ -75,6 +91,7 @@ const authSlice = createSlice({
         token: null,
         userType: null,
         student: null,
+        staff: null,
         loading: false,
         error: null,
     },
@@ -83,6 +100,7 @@ const authSlice = createSlice({
             state.token = null;
             state.userType = null;
             state.student = null;
+            state.staff = null;
             // AsyncStorage.removeItem('token');
         },
     },
@@ -97,6 +115,7 @@ const authSlice = createSlice({
                 state.token = action.payload.token;
                 state.userType = action.payload.userType;
                 state.student = null;
+                state.staff = action.payload.staff;
             })
             .addCase(loginUser.rejected, (state) => {
                 state.loading = false;
@@ -111,6 +130,7 @@ const authSlice = createSlice({
                 state.token = action.payload.token;
                 state.userType = action.payload.userType;
                 state.student = action.payload.student;
+                state.staff = null;
             })
             .addCase(loginStudent.rejected, (state) => {
                 state.loading = false;
@@ -120,6 +140,7 @@ const authSlice = createSlice({
                 state.token = action.payload?.token || null;
                 state.userType = action.payload?.userType || null;
                 state.student = action.payload?.student || null;
+                state.staff = action.payload?.staff || null;
             });
     },
 });

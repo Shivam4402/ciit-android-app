@@ -2,6 +2,8 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import StudentDashboardScreen from '../features/student/screens/StudentDashboardScreen';
 import StudentCoursesScreen from '../features/student/screens/StudentCoursesScreen';
+import StudentFeeDetailsScreen from '../features/student/screens/StudentFeeDetailsScreen';
+import StudentBatchesScreen from '../features/student/screens/StudentBatchesScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -16,6 +18,16 @@ const StudentPrivateNavigator = () => {
       <Stack.Screen
         name="StudentCourses"
         component={StudentCoursesScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="StudentBatches"
+        component={StudentBatchesScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="StudentFeeDetails"
+        component={StudentFeeDetailsScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

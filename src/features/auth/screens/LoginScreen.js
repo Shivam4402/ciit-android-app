@@ -7,8 +7,8 @@ import {
   StyleSheet,
   Image,
   ActivityIndicator,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginUser } from '../authSlice';
 
@@ -26,7 +26,7 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
 
       {/* Logo Section */}
       <View style={styles.logoContainer}>

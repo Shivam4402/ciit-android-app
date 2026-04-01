@@ -13,6 +13,9 @@ export const studentLoginApi = async ({ userName, password }) => {
     Password: password,
   };
 
+  console.log("Student Login payload:", payload);
   const response = await axiosClient.post('/auth/student-login', payload);
+  console.log("Student Login response:", response);
   return response.data;
-};
+}
+  

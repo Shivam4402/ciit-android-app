@@ -5,15 +5,16 @@ import {
     TouchableOpacity,
     StyleSheet,
     Alert,
-    SafeAreaView,
     Pressable,
     Animated,
     Easing,
+    Modal,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from '@react-native-vector-icons/material-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../features/auth/authSlice';
 
 const DRAWER_WIDTH = 280;
@@ -27,25 +28,51 @@ const PrivateLayout = ({ title, children, navItems = NAV_ITEMS }) => {
     const navigation = useNavigation();
     const route = useRoute();
     const dispatch = useDispatch();
+    const { userType, student, staff } = useSelector((state) => state.auth);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [isLogoutOpen, setIsLogoutOpen] = useState(false);
     const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
 
     const activeRouteName = route?.name;
 
     const handleLogout = () => {
-        Alert.alert('Logout', 'Are you sure?', [
-            { text: 'Cancel' },
-            {
-                text: 'Yes',
-                onPress: async () => {
-                    await AsyncStorage.removeItem('token');
-                    await AsyncStorage.removeItem('userType');
-                    await AsyncStorage.removeItem('studentProfile');
-                    dispatch(logout());
-                },
-            },
-        ]);
+
+        setIsLogoutOpen(true);
     };
+
+    const confirmLogout = async () => {
+        setIsLogoutOpen(false);
+        await AsyncStorage.removeItem('token');
+        await AsyncStorage.removeItem('userType');
+        await AsyncStorage.removeItem('studentProfile');
+        await AsyncStorage.removeItem('staffProfile');
+        dispatch(logout());
+    };
+
+    const displayName = userType === 'student'
+        ? `${student?.StudentName || student?.studentName || ''} ${student?.LastName || student?.lastName || ''}`.trim() || 'Student'
+        : (staff?.userName || 'Staff User');
+
+    const primaryIdentity = userType === 'student'
+        ? (student?.EmailAddress || student?.emailAddress || student?.StudentCode || student?.studentCode || 'N/A')
+        : (staff?.userName || 'N/A');
+
+    const profileRows = userType === 'student'
+        ? 
+    
+        [
+            // { label: 'Student ID', value: student?.StudentId || student?.studentId || 'N/A' },
+            // { label: 'Code', value: student?.StudentCode || student?.studentCode || 'N/A' },
+            { label: 'Email', value: student?.EmailAddress || student?.emailAddress || 'N/A' },
+            { label: 'Mobile', value: student?.MobileNumber || student?.mobileNumber || 'N/A' },
+            { label: 'Branch', value: student?.BranchName || student?.branchName || 'N/A' },
+            { label: 'Role', value: 'Student' },
+        ]
+        : [
+            { label: 'Username', value: staff?.userName || 'N/A' },
+            { label: 'Role', value: 'Staff' },
+        ];
 
     const closeSidebar = () => {
         Animated.timing(slideAnim, {
@@ -82,7 +109,7 @@ const PrivateLayout = ({ title, children, navItems = NAV_ITEMS }) => {
     };
 
     return (
-        <SafeAreaView style={styles.safeArea}>
+        <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
             <View style={styles.container}>
                 <View style={styles.content}>
                     <View style={styles.header}>
@@ -106,14 +133,27 @@ const PrivateLayout = ({ title, children, navItems = NAV_ITEMS }) => {
                             </View>
                         </View>
 
-                        <TouchableOpacity
-                            onPress={handleLogout}
-                            style={styles.logoutBtn}
-                            accessibilityRole="button"
-                            accessibilityLabel="Logout"
-                        >
-                            <MaterialIcons name="logout" size={20} color="#DC2626" />
-                        </TouchableOpacity>
+                        <View style={styles.headerRight}>
+                            <TouchableOpacity
+                                onPress={() => setIsProfileOpen(true)}
+                                style={styles.profileBtn}
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                accessibilityRole="button"
+                                accessibilityLabel="Open profile"
+                            >
+                                <MaterialIcons name="person-outline" size={20} color="#2563EB" />
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                onPress={handleLogout}
+                                style={styles.logoutBtn}
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                accessibilityRole="button"
+                                accessibilityLabel="Logout"
+                            >
+                                <MaterialIcons name="logout" size={20} color="#DC2626" />
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
                     <View style={styles.body}>{children}</View>
@@ -185,6 +225,74 @@ const PrivateLayout = ({ title, children, navItems = NAV_ITEMS }) => {
                         </Animated.View>
                     </View>
                 ) : null}
+
+                <Modal
+                    visible={isProfileOpen}
+                    transparent
+                    animationType="fade"
+                    onRequestClose={() => setIsProfileOpen(false)}
+                >
+                    <Pressable style={styles.profileModalBackdrop} onPress={() => setIsProfileOpen(false)}>
+                        <Pressable style={styles.profileModalCard} onPress={() => null}>
+                            <View style={styles.profileHeader}>
+                                <View style={styles.profileAvatarWrap}>
+                                    <MaterialIcons name="person" size={24} color="#1D4ED8" />
+                                </View>
+                                <View style={styles.profileTextWrap}>
+                                    <Text style={styles.profileName} numberOfLines={1}>{displayName}</Text>
+                                    <Text style={styles.profileSubText} numberOfLines={1}>{primaryIdentity}</Text>
+                                </View>
+                                <TouchableOpacity
+                                    onPress={() => setIsProfileOpen(false)}
+                                    style={styles.profileCloseBtn}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Close profile"
+                                >
+                                    <MaterialIcons name="close" size={20} color="#475569" />
+                                </TouchableOpacity>
+                            </View>
+
+                            <View style={styles.profileDivider} />
+
+                            {profileRows.map((row) => (
+                                <View key={row.label} style={styles.profileRow}>
+                                    <Text style={styles.profileLabel}>{row.label}</Text>
+                                    <Text style={styles.profileValue}>{row.value}</Text>
+                                </View>
+                            ))}
+                        </Pressable>
+                    </Pressable>
+                </Modal>
+
+                <Modal
+                    visible={isLogoutOpen}
+                    transparent
+                    animationType="fade"
+                    onRequestClose={() => setIsLogoutOpen(false)}
+                >
+                    <Pressable style={styles.profileModalBackdrop} onPress={() => setIsLogoutOpen(false)}>
+                        <Pressable style={styles.profileModalCard} onPress={() => null}>
+                            <Text style={styles.logoutTitle}>Logout</Text>
+                            <Text style={styles.logoutMessage}>Are you sure you want to logout?</Text>
+
+                            <View style={styles.logoutActions}>
+                                <TouchableOpacity
+                                    onPress={() => setIsLogoutOpen(false)}
+                                    style={styles.logoutCancel}
+                                >
+                                    <Text style={styles.logoutCancelText}>Cancel</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    onPress={confirmLogout}
+                                    style={styles.logoutConfirm}
+                                >
+                                    <Text style={styles.logoutConfirmText}>Yes, Logout</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </Pressable>
+                    </Pressable>
+                </Modal>
             </View>
         </SafeAreaView>
     );
@@ -250,6 +358,21 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: 1,
         borderColor: '#FECACA',
+    },
+    headerRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    profileBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: '#EFF6FF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#BFDBFE',
     },
     body: {
         flex: 1,
@@ -371,5 +494,114 @@ const styles = StyleSheet.create({
     navTextActive: {
         color: '#1E3A8A',
         fontWeight: '700',
+    },
+    profileModalBackdrop: {
+        flex: 1,
+        backgroundColor: 'rgba(2, 6, 23, 0.4)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+    },
+    profileModalCard: {
+        width: '100%',
+        maxWidth: 380,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 18,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+    },
+    profileHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    profileAvatarWrap: {
+        width: 46,
+        height: 46,
+        borderRadius: 14,
+        backgroundColor: '#DBEAFE',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    profileTextWrap: {
+        flex: 1,
+        marginLeft: 10,
+        marginRight: 8,
+    },
+    profileName: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#0F172A',
+    },
+    profileSubText: {
+        marginTop: 3,
+        fontSize: 13,
+        color: '#64748B',
+    },
+    profileCloseBtn: {
+        width: 34,
+        height: 34,
+        borderRadius: 10,
+        backgroundColor: '#F8FAFC',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    profileDivider: {
+        height: 1,
+        backgroundColor: '#E2E8F0',
+        marginVertical: 14,
+    },
+    profileRow: {
+        marginBottom: 10,
+    },
+    profileLabel: {
+        fontSize: 12,
+        color: '#64748B',
+        marginBottom: 2,
+    },
+    profileValue: {
+        fontSize: 14,
+        color: '#0F172A',
+        fontWeight: '600',
+    },
+    logoutTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#0F172A',
+        marginBottom: 6,
+    },
+    logoutMessage: {
+        fontSize: 13,
+        color: '#64748B',
+        marginBottom: 14,
+    },
+    logoutActions: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        gap: 10,
+    },
+    logoutCancel: {
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: 10,
+        backgroundColor: '#F1F5F9',
+    },
+    logoutCancelText: {
+        color: '#334155',
+        fontWeight: '600',
+        fontSize: 13,
+    },
+    logoutConfirm: {
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: 10,
+        backgroundColor: '#EF4444',
+    },
+    logoutConfirmText: {
+        color: '#FFFFFF',
+        fontWeight: '700',
+        fontSize: 13,
     },
 });
