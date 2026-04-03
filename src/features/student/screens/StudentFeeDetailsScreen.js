@@ -3,12 +3,18 @@ import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } f
 import { useSelector } from 'react-redux';
 import PrivateLayout from '../../../components/PrivateLayout';
 import { getStudentDetailsById } from '../services/studentPortalApi';
+import RNFS from 'react-native-fs';
+import Share from 'react-native-share';
+import axiosClient from '../../../api/axiosClient';
+import { TouchableOpacity, Platform } from 'react-native';
+import ReactNativeBlobUtil from 'react-native-blob-util';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const STUDENT_NAV_ITEMS = [
   { label: 'Dashboard', routeName: 'StudentDashboard', icon: 'dashboard' },
-//   { label: 'Course List', routeName: 'StudentCourses', icon: 'menu-book' },
-{ label: 'My Courses', routeName: 'StudentFeeDetails', icon: 'menu-book' },
-{ label: 'My Batches', routeName: 'StudentBatches', icon: 'groups' },
+  //   { label: 'Course List', routeName: 'StudentCourses', icon: 'menu-book' },
+  { label: 'My Courses', routeName: 'StudentFeeDetails', icon: 'menu-book' },
+  { label: 'My Batches', routeName: 'StudentBatches', icon: 'groups' },
 ];
 
 const getValue = (...values) => values.find((value) => value !== undefined && value !== null);
@@ -74,6 +80,8 @@ const StudentFeeDetailsScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [registrations, setRegistrations] = useState([]);
+  const [loadingId, setLoadingId] = useState(null);
+
 
   const loadFeeData = async (showLoader = true) => {
     if (!studentId) {
@@ -172,25 +180,70 @@ const StudentFeeDetailsScreen = () => {
     });
   }, [registrations]);
 
-//   const totals = useMemo(() => {
-//     return feeItems.reduce(
-//       (accumulator, item) => {
-//         accumulator.totalFee += item.totalFee;
-//         accumulator.totalDiscount += item.discount;
-//         accumulator.totalPayable += item.payableFee;
-//         accumulator.totalPaid += item.paidFee;
-//         accumulator.totalDue += item.dueFee;
-//         return accumulator;
-//       },
-//       {
-//         totalFee: 0,
-//         totalDiscount: 0,
-//         totalPayable: 0,
-//         totalPaid: 0,
-//         totalDue: 0,
-//       },
-//     );
-//   }, [feeItems]);
+
+  const downloadPDF = async (item, base64) => {
+    try {
+      const fileName = `${item.courseName}_Invoice_${Date.now()}.pdf`;
+
+      if (Platform.OS === 'android') {
+        const dirs = ReactNativeBlobUtil.fs.dirs;
+
+        const path = `${dirs.DownloadDir}/${fileName}`;
+
+        await ReactNativeBlobUtil.fs.writeFile(path, base64, 'base64');
+
+        // 👇 Register file in MediaStore (IMPORTANT)
+        await ReactNativeBlobUtil.android.addCompleteDownload({
+          title: fileName,
+          description: 'Course Fee Invoice',
+          mime: 'application/pdf',
+          path: path,
+          showNotification: true,
+        });
+
+        alert('PDF saved to Downloads ✅');
+      }
+    } catch (error) {
+      console.log('Download error:', error);
+    }
+  };
+
+  const getPDFBase64 = async (item) => {
+    const response = await axiosClient.post(
+      '/course-fees/generate-fee-invoice',
+      {
+        studentName: student?.studentName || 'N/A',
+        courseName: item.courseName,
+        registrationDate: formatDate(item.registrationDate),
+        status: item.status,
+        feeMode: item.feeMode,
+        totalFee: item.totalFee,
+        discount: item.discount,
+        payableFee: item.payableFee,
+        paidFee: item.paidFee,
+        dueFee: item.dueFee,
+        payments: []
+      }
+    );
+
+    return response.data;
+  };
+
+  const sharePDF = async (item) => {
+    const base64 = await getPDFBase64(item);
+    const path = `${RNFS.DocumentDirectoryPath}/${item.courseName}.pdf`;
+    await RNFS.writeFile(path, base64, 'base64');
+    await Share.open({
+      urls: ['file://' + path],
+      type: 'application/pdf',
+      failOnCancel: false,
+    });
+  };
+
+  const downloadPDFHandler = async (item) => {
+    const base64 = await getPDFBase64(item);
+    await downloadPDF(item, base64); // MediaStore logic
+  };
 
   if (loading) {
     return (
@@ -229,40 +282,6 @@ const StudentFeeDetailsScreen = () => {
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.listContent}
-            // ListHeaderComponent={
-            //   <View style={styles.summaryCard}>
-            //     <View style={styles.summaryHeaderRow}>
-            //       <Text style={styles.summaryTitle}>Fee Overview</Text>
-            //       <View style={[styles.chip, totals.totalDue <= 0 ? styles.chipSuccess : styles.chipWarning]}>
-            //         <Text style={[styles.chipText, totals.totalDue <= 0 ? styles.chipSuccessText : styles.chipWarningText]}>
-            //           {totals.totalDue <= 0 ? 'All Clear' : 'Due Pending'}
-            //         </Text>
-            //       </View>
-            //     </View>
-
-            //     <View style={styles.metricGrid}>
-            //       <View style={styles.metricTile}>
-            //         <Text style={styles.metricLabel}>Total Fee</Text>
-            //         <Text style={styles.metricValue}>{formatCurrency(totals.totalFee)}</Text>
-            //       </View>
-
-            //       <View style={styles.metricTile}>
-            //         <Text style={styles.metricLabel}>Discount</Text>
-            //         <Text style={styles.metricValue}>{formatCurrency(totals.totalDiscount)}</Text>
-            //       </View>
-
-            //       <View style={styles.metricTile}>
-            //         <Text style={styles.metricLabel}>Paid</Text>
-            //         <Text style={[styles.metricValue, styles.metricPaid]}>{formatCurrency(totals.totalPaid)}</Text>
-            //       </View>
-
-            //       <View style={styles.metricTile}>
-            //         <Text style={styles.metricLabel}>Due</Text>
-            //         <Text style={[styles.metricValue, styles.metricDue]}>{formatCurrency(totals.totalDue)}</Text>
-            //       </View>
-            //     </View>
-            //   </View>
-            // }
             renderItem={({ item }) => (
               <View style={styles.card}>
                 <View style={styles.cardHeader}>
@@ -302,31 +321,70 @@ const StudentFeeDetailsScreen = () => {
 
                 <View style={styles.divider} />
 
-                <View style={styles.amountGrid}>
-                  <View style={styles.amountTile}>
-                    <Text style={styles.amountLabel}>Total</Text>
-                    <Text style={styles.amountValue}>{formatCurrency(item.totalFee)}</Text>
+                <View style={styles.amountSection}>
+
+                  {/* Row 1 */}
+                  <View style={styles.amountRow}>
+                    <View style={styles.amountItem}>
+                      <Text style={styles.amountLabel}>Total</Text>
+                      <Text style={styles.amountValue}>{formatCurrency(item.totalFee)}</Text>
+                    </View>
+
+                    <View style={[styles.amountItem, styles.amountItemRight]}>
+                      <Text style={styles.amountLabel}>Discount</Text>
+                      <Text style={styles.amountValue}>{formatCurrency(item.discount)}</Text>
+                    </View>
                   </View>
 
-                  <View style={styles.amountTile}>
-                    <Text style={styles.amountLabel}>Discount</Text>
-                    <Text style={styles.amountValue}>{formatCurrency(item.discount)}</Text>
+                  {/* Row 2 */}
+                  <View style={styles.amountRow}>
+                    <View style={styles.amountItem}>
+                      <Text style={styles.amountLabel}>Payable</Text>
+                      <Text style={styles.amountValue}>{formatCurrency(item.payableFee)}</Text>
+                    </View>
+
+                    <View style={[styles.amountItem, styles.amountItemRight]}>
+                      <Text style={styles.amountLabel}>Paid</Text>
+                      <Text style={[styles.amountValue, styles.metricPaid]}>
+                        {formatCurrency(item.paidFee)}
+                      </Text>
+                    </View>
                   </View>
 
-                  <View style={styles.amountTile}>
-                    <Text style={styles.amountLabel}>Payable</Text>
-                    <Text style={styles.amountValue}>{formatCurrency(item.payableFee)}</Text>
-                  </View>
-
-                  <View style={styles.amountTile}>
-                    <Text style={styles.amountLabel}>Paid</Text>
-                    <Text style={[styles.amountValue, styles.metricPaid]}>{formatCurrency(item.paidFee)}</Text>
-                  </View>
                 </View>
+                <View style={styles.heroDue}>
+                  <Text style={styles.heroAmount}>{formatCurrency(item.dueFee)}</Text>
+                  <Text style={styles.heroLabel}>Outstanding Due</Text>
+                </View>
+                <View style={styles.actionRow}>
 
-                <View style={styles.dueBanner}>
-                  <Text style={styles.dueLabel}>Outstanding Due</Text>
-                  <Text style={styles.dueValue}>{formatCurrency(item.dueFee)}</Text>
+                  {/* Download - Primary */}
+                  <TouchableOpacity
+                    style={[styles.downloadBtn]}
+                    onPress={async () => {
+                      setLoadingId(item.id);
+                      await downloadPDFHandler(item);
+                      setLoadingId(null);
+                    }}
+                    disabled={loadingId === item.id}
+                  >
+                    <View style={styles.btnContent}>
+                      <Icon name="download" size={18} color="#fff" />
+                      <Text style={styles.downloadText}>Download</Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Share - Secondary */}
+                  <TouchableOpacity
+                    style={[styles.shareBtn]}
+                    onPress={() => sharePDF(item)}
+                  >
+                    <View style={styles.btnContent}>
+                      <Icon name="share" size={18} color="#2563EB" />
+                      <Text style={styles.shareText}>Share</Text>
+                    </View>
+                  </TouchableOpacity>
+
                 </View>
               </View>
             )}
@@ -351,173 +409,182 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-//   summaryCard: {
-//     backgroundColor: '#FFFFFF',
-//     borderRadius: 16,
-//     borderWidth: 1,
-//     borderColor: '#E2E8F0',
-//     padding: 14,
-//     marginBottom: 12,
-//   },
-//   summaryHeaderRow: {
-//     flexDirection: 'row',
-//     justifyContent: 'space-between',
-//     alignItems: 'center',
-//     marginBottom: 12,
-//   },
-//   summaryTitle: {
-//     fontSize: 16,
-//     fontWeight: '700',
-//     color: '#0F172A',
-//   },
-//   metricGrid: {
-//     flexDirection: 'row',
-//     flexWrap: 'wrap',
-//     marginHorizontal: -4,
-//   },
-//   metricTile: {
-//     width: '50%',
-//     paddingHorizontal: 4,
-//     paddingVertical: 4,
-//   },
-//   metricLabel: {
-//     fontSize: 12,
-//     color: '#64748B',
-//     marginBottom: 4,
-//   },
-//   metricValue: {
-//     fontSize: 15,
-//     fontWeight: '700',
-//     color: '#0F172A',
-//   },
-  metricPaid: {
-    color: '#166534',
-  },
-  metricDue: {
-    color: '#B91C1C',
-  },
+
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 14,
-    marginBottom: 10,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
+
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
   },
+
   cardHeaderLeft: {
     flex: 1,
     marginRight: 8,
   },
+
   title: {
     fontSize: 16,
     fontWeight: '700',
     color: '#0F172A',
   },
+
   metaMuted: {
     fontSize: 13,
     color: '#64748B',
     marginTop: 2,
   },
+
   chip: {
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
+
   chipText: {
     fontSize: 12,
     fontWeight: '700',
   },
-//   chipSuccess: {
-//     backgroundColor: '#DCFCE7',
-//   },
-//   chipSuccessText: {
-//     color: '#166534',
-//   },
-//   chipWarning: {
-//     backgroundColor: '#FEF3C7',
-//   },
-//   chipWarningText: {
-//     color: '#92400E',
-//   },
+
   progressTrack: {
-    height: 8,
+    height: 10,
     borderRadius: 999,
-    backgroundColor: '#E2E8F0',
-    overflow: 'hidden',
-    marginBottom: 12,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 10,
   },
+
   progressFill: {
     height: '100%',
     borderRadius: 999,
   },
+
   rowBetween: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 6,
   },
+
   metaLabel: {
     fontSize: 13,
     color: '#64748B',
   },
+
   metaValue: {
     fontSize: 13,
     fontWeight: '600',
     color: '#0F172A',
   },
+
   divider: {
     height: 1,
     backgroundColor: '#E2E8F0',
     marginVertical: 10,
   },
-  amountGrid: {
+
+  amountSection: {
+    marginTop: 6,
+  },
+
+  amountRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -4,
+    justifyContent: 'space-between',
+    marginBottom: 10,
   },
-  amountTile: {
-    width: '50%',
-    paddingHorizontal: 4,
-    paddingVertical: 4,
+
+  amountItem: {
+    flex: 1,
   },
+
+  amountItemRight: {
+    alignItems: 'flex-end',
+  },
+
   amountLabel: {
     fontSize: 12,
     color: '#64748B',
-    marginBottom: 4,
   },
+
   amountValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  dueBanner: {
-    marginTop: 10,
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  dueLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#7F1D1D',
-  },
-  dueValue: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#B91C1C',
+    color: '#0F172A',
+    marginTop: 2,
   },
+
+  metricPaid: {
+    color: '#166534',
+  },
+
+  heroDue: {
+    alignItems: 'center',
+    marginVertical: 12,
+  },
+
+  heroAmount: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#DC2626',
+  },
+
+  heroLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+  },
+
+  actionRow: {
+    flexDirection: 'row',
+    marginTop: 14,
+    gap: 10,
+  },
+
+  btnContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+
+  downloadBtn: {
+    flex: 1,
+    backgroundColor: '#16A34A',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+
+  shareBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#2563EB',
+    backgroundColor: '#EFF6FF',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+
+  downloadText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+
+  shareText: {
+    color: '#2563EB',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+
   emptyCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
@@ -526,17 +593,20 @@ const styles = StyleSheet.create({
     padding: 18,
     marginTop: 8,
   },
+
   emptyTitle: {
     fontSize: 16,
     fontWeight: '700',
     color: '#0F172A',
     marginBottom: 6,
   },
+
   emptyText: {
     color: '#64748B',
     fontSize: 14,
     lineHeight: 20,
   },
+
   errorCard: {
     backgroundColor: '#FEF2F2',
     borderRadius: 14,
@@ -545,12 +615,14 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 10,
   },
+
   errorTitle: {
     color: '#991B1B',
     fontSize: 14,
     fontWeight: '700',
     marginBottom: 2,
   },
+
   errorText: {
     color: '#B91C1C',
     fontSize: 13,
