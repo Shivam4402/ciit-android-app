@@ -190,6 +190,20 @@ const StudentBatchesScreen = () => {
               const isLoadingAttendance = Boolean(attendanceLoading[item.batchId]);
               const attendanceErrorText = attendanceError[item.batchId] || '';
 
+              const totalSessions = attendance.length;
+              const presentSessions = attendance.reduce((count, record) => {
+                const statusValue = getValue(
+                  record?.attendance,
+                  record?.Attendance,
+                  record?.status,
+                  record?.Status,
+                  record?.isPresent,
+                  record?.IsPresent,
+                );
+                return toReadableStatus(statusValue) === 'Present' ? count + 1 : count;
+              }, 0);
+              const progressRatio = totalSessions > 0 ? presentSessions / totalSessions : 0;
+
               return (
                 <View style={styles.card}>
                   <View style={styles.cardHeader}>
@@ -240,6 +254,26 @@ const StudentBatchesScreen = () => {
                         <Text style={styles.attendanceTitle}>Attendance</Text>
                         <Text style={styles.attendanceCount}>{attendance.length} sessions</Text>
                       </View>
+
+                      {!isLoadingAttendance && !attendanceErrorText && totalSessions > 0 ? (
+                        <View style={styles.progressWrap}>
+                          <View style={styles.progressMeta}>
+                            <Text style={styles.progressLabel}>Present</Text>
+                            <Text style={styles.progressValue}>
+                              {presentSessions}/{totalSessions}
+                            </Text>
+                          </View>
+                          <View style={styles.progressTrack}>
+                            <View
+                              style={[
+                                styles.progressFill,
+                                { width: `${Math.round(progressRatio * 100)}%` },
+                              ]}
+                            />
+                          </View>
+                        </View>
+                      ) : null}
+
                       {isLoadingAttendance ? (
                         <View style={styles.attendanceLoader}>
                           <ActivityIndicator size="small" color="#2563EB" />
@@ -554,5 +588,34 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#64748B',
     fontSize: 14,
+  },
+  progressWrap: {
+    marginBottom: 12,
+  },
+  progressMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  progressLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  progressValue: {
+    fontSize: 12,
+    color: '#0F172A',
+    fontWeight: '700',
+  },
+  progressTrack: {
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: '#E2E8F0',
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: '#16A34A',
   },
 });
