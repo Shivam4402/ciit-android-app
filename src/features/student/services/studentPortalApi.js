@@ -56,3 +56,24 @@ export const getStudentBatchAttendance = async (batchId, registrationId) => {
         throw error;
     }
 };
+
+export const getStudentBatchExams = async (registrationId) => {
+    try {
+        if (!registrationId) return [];
+
+        const response = await axiosClient.get(`/students/student-batch-exams/${registrationId}`);
+
+        if (response?.data && response.data.data !== undefined) {
+            return response.data.data || [];
+        }
+
+        return response?.data || [];
+    } catch (error) {
+        if (error?.response?.status === 404) {
+            return [];
+        }
+
+        console.log('Error fetching student batch exams:', error);
+        throw error;
+    }
+};

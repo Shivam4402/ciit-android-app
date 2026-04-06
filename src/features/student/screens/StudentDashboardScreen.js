@@ -9,6 +9,7 @@ const STUDENT_NAV_ITEMS = [
   // { label: 'Course List', routeName: 'StudentCourses', icon: 'menu-book' },
   { label: 'My Courses', routeName: 'StudentFeeDetails', icon: 'menu-book' },
   { label: 'My Batches', routeName: 'StudentBatches', icon: 'groups' },
+  { label: 'My Exams', routeName: 'StudentExams', icon: 'fact-check' },
 ];
 
 const StudentDashboardScreen = () => {

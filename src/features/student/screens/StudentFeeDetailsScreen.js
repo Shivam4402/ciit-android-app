@@ -9,12 +9,16 @@ import axiosClient from '../../../api/axiosClient';
 import { TouchableOpacity, Platform } from 'react-native';
 import ReactNativeBlobUtil from 'react-native-blob-util';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import FileViewer from 'react-native-file-viewer';
+import Toast from 'react-native-toast-message';
+
 
 const STUDENT_NAV_ITEMS = [
   { label: 'Dashboard', routeName: 'StudentDashboard', icon: 'dashboard' },
   //   { label: 'Course List', routeName: 'StudentCourses', icon: 'menu-book' },
   { label: 'My Courses', routeName: 'StudentFeeDetails', icon: 'menu-book' },
   { label: 'My Batches', routeName: 'StudentBatches', icon: 'groups' },
+  { label: 'My Exams', routeName: 'StudentExams', icon: 'fact-check' },
 ];
 
 const getValue = (...values) => values.find((value) => value !== undefined && value !== null);
@@ -180,33 +184,44 @@ const StudentFeeDetailsScreen = () => {
     });
   }, [registrations]);
 
+const downloadPDF = async (item, base64) => {
+  try {
+    const fileName = `${item.courseName}_Invoice_${Date.now()}.pdf`;
 
-  const downloadPDF = async (item, base64) => {
-    try {
-      const fileName = `${item.courseName}_Invoice_${Date.now()}.pdf`;
+    if (Platform.OS === 'android') {
+      const dirs = ReactNativeBlobUtil.fs.dirs;
 
-      if (Platform.OS === 'android') {
-        const dirs = ReactNativeBlobUtil.fs.dirs;
+      const path = `${dirs.DownloadDir}/${fileName}`;
 
-        const path = `${dirs.DownloadDir}/${fileName}`;
+      // ✅ Save file
+      await ReactNativeBlobUtil.fs.writeFile(path, base64, 'base64');
 
-        await ReactNativeBlobUtil.fs.writeFile(path, base64, 'base64');
+      // ✅ Register in Downloads (notification)
+      await ReactNativeBlobUtil.android.addCompleteDownload({
+        title: fileName,
+        description: 'Course Fee Invoice',
+        mime: 'application/pdf',
+        path: path,
+        showNotification: true,
+      });
 
-        // 👇 Register file in MediaStore (IMPORTANT)
-        await ReactNativeBlobUtil.android.addCompleteDownload({
-          title: fileName,
-          description: 'Course Fee Invoice',
-          mime: 'application/pdf',
-          path: path,
-          showNotification: true,
-        });
+       // ✅ Toast instead of alert
+      Toast.show({
+        type: 'success',
+        text1: 'Download Complete',
+        text2: 'PDF downloaded successfully..📄',
+      });
 
-        alert('PDF saved to Downloads ✅');
-      }
-    } catch (error) {
-      console.log('Download error:', error);
     }
-  };
+  } catch (error) {
+    console.log('Download/Open error:', error);
+    Toast.show({
+      type: 'error',
+      text1: 'Error',
+      text2: 'Unable to open PDF',
+    });
+  }
+};
 
   const getPDFBase64 = async (item) => {
     const response = await axiosClient.post(
@@ -230,14 +245,30 @@ const StudentFeeDetailsScreen = () => {
   };
 
   const sharePDF = async (item) => {
-    const base64 = await getPDFBase64(item);
-    const path = `${RNFS.DocumentDirectoryPath}/${item.courseName}.pdf`;
-    await RNFS.writeFile(path, base64, 'base64');
-    await Share.open({
-      urls: ['file://' + path],
-      type: 'application/pdf',
-      failOnCancel: false,
-    });
+    try {
+      const base64 = await getPDFBase64(item);
+
+      const fileName = `${item.courseName}_${Date.now()}.pdf`;
+      const path = `${RNFS.CachesDirectoryPath}/${fileName}`;
+
+      await RNFS.writeFile(path, base64, 'base64');
+
+      const exists = await RNFS.exists(path);
+      console.log('File exists:', exists);
+
+      if (!exists) throw new Error('File not created');
+
+      await Share.open({
+        url: 'file://' + path,
+        type: 'application/pdf',
+        filename: fileName,
+        failOnCancel: false,
+        useInternalStorage: true,
+      });
+
+    } catch (error) {
+      console.log('Share Error:', error);
+    }
   };
 
   const downloadPDFHandler = async (item) => {
@@ -377,7 +408,11 @@ const StudentFeeDetailsScreen = () => {
                   {/* Share - Secondary */}
                   <TouchableOpacity
                     style={[styles.shareBtn]}
-                    onPress={() => sharePDF(item)}
+                    onPress={async () => {
+                      setLoadingId(item.id);
+                      await sharePDF(item);
+                      setLoadingId(null);
+                    }}
                   >
                     <View style={styles.btnContent}>
                       <Icon name="share" size={18} color="#2563EB" />

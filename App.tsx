@@ -5,6 +5,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import AppNavigator from './src/navigation/AppNavigator';
 import { loadUserFromStorage } from './src/features/auth/authSlice';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 
 const Root = () => {
   const dispatch = useDispatch<typeof store.dispatch>();
@@ -22,6 +23,7 @@ export default function App() {
       <Provider store={store}>
         <NavigationContainer>
           <Root />
+          <Toast />
         </NavigationContainer>
       </Provider>
     </SafeAreaProvider>

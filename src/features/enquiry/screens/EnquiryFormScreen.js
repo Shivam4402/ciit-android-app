@@ -7,6 +7,7 @@ import { useEnquiry } from '../hooks/useEnquiry';
 import { createEnquiry } from '../services/enquiryApi';
 import { Dropdown } from 'react-native-element-dropdown';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import Toast from 'react-native-toast-message';
 
 const EnquiryFormScreen = ({ navigation }) => {
     const { leadSources, enquiryFors, topics, qualifications, branches } = useEnquiry();
@@ -90,72 +91,89 @@ const EnquiryFormScreen = ({ navigation }) => {
         form.branchId &&
         form.qualification &&
         dob;
+
+
     // 🔹 submit
-    const handleSubmit = async () => {
-        if (!validate()) return;
-        setLoading(true);
+  const handleSubmit = async () => {
+  if (!validate()) return;
 
-        const leadNames = leadSources
-            .filter(x => selectedLeadSources.includes(x.sourceId))
-            .map(x => x.sourceName);
+  setLoading(true);
 
-        const enquiryNames = enquiryFors
-            .filter(x => selectedEnquiryFors.includes(x.enquiryForId))
-            .map(x => x.enquiryFor);
+  const leadNames = leadSources
+    .filter(x => selectedLeadSources.includes(x.sourceId))
+    .map(x => x.sourceName);
 
-        const topicNames = topics
-            .filter(x => selectedTopics.includes(x.topicId))
-            .map(x => x.topicName);
+  const enquiryNames = enquiryFors
+    .filter(x => selectedEnquiryFors.includes(x.enquiryForId))
+    .map(x => x.enquiryFor);
 
-        const payload = {
-            candidateName: form.candidateName,
-            emailAddress: form.email,
-            mobileNumber: form.mobile,
-            localAddress: form.localAddress,
-            gender: form.gender,
-            birthDate: dob ? dob.toISOString() : null,
-            branchId: form.branchId,
-            qualification: form.qualification,
-            leadSources: leadNames.join(", "),
-            enquiryFors: enquiryNames.join(", "),
-            interestedTopics: topicNames.join(", "),
-        };
+  const topicNames = topics
+    .filter(x => selectedTopics.includes(x.topicId))
+    .map(x => x.topicName);
 
+  const payload = {
+    candidateName: form.candidateName,
+    emailAddress: form.email,
+    mobileNumber: form.mobile,
+    localAddress: form.localAddress,
+    gender: form.gender,
+    birthDate: dob ? dob.toISOString() : null,
+    branchId: form.branchId,
+    qualification: form.qualification,
+    leadSources: leadNames.join(", "),
+    enquiryFors: enquiryNames.join(", "),
+    interestedTopics: topicNames.join(", "),
+  };
 
-        try {
-            await createEnquiry(payload);
+  try {
+    await createEnquiry(payload);
 
-            alert("✅ Enquiry submitted successfully");
+    // ✅ SUCCESS TOAST
+    Toast.show({
+      type: 'success',
+      text1: 'Enquiry Submitted',
+      text2: 'Your enquiry was submitted successfully 🎉',
+      position: 'top',
+      visibilityTime: 2000,
+    });
 
+    // reset form
+    setForm({
+      candidateName: '',
+      email: '',
+      mobile: '',
+      gender: '',
+      localAddress: '',
+      birthDate: null,
+      branchId: '',
+      qualification: '',
+    });
 
-            // reset form
-            setForm({
-                candidateName: '',
-                email: '',
-                mobile: '',
-                gender: '',
-                localAddress: '',
-                birthDate: null,
-                branchId: '',
-                qualification: '',
-            });
+    setSelectedLeadSources([]);
+    setSelectedEnquiryFors([]);
+    setSelectedTopics([]);
+    setErrors({});
 
-            setSelectedLeadSources([]);
-            setSelectedEnquiryFors([]);
-            setSelectedTopics([]);
-            setErrors({});
+    // ⏳ navigate after toast
+    setTimeout(() => {
+      navigation.replace('Login');
+    }, 2000);
 
-            setTimeout(() => {
-                navigation.replace('Login');
-            }, 2000);
+  } catch (err) {
+    console.log(err);
 
-        } catch (err) {
-            console.log(err);
-            alert("❌ Something went wrong");
-        } finally {
-            setLoading(false);
-        }
-    };
+    // ❌ ERROR TOAST
+    Toast.show({
+      type: 'error',
+      text1: 'Submission Failed',
+      text2: 'Something went wrong. Please try again.',
+      position: 'top',
+    });
+
+  } finally {
+    setLoading(false);
+  }
+};
 
     return (
         <View style={{ flex: 1 }}>
