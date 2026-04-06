@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useSelector } from 'react-redux';
 import PrivateLayout from '../../../components/PrivateLayout';
 import { getStudentBatchExams, getStudentWiseBatchDetails } from '../services/studentPortalApi';
@@ -53,6 +54,8 @@ const StudentExamsScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [exams, setExams] = useState([]);
+  const [activeTab, setActiveTab] = useState('today');
+
 
   const resolveRegistrationIds = async () => {
     const directRegistrationId = toNumber(getValue(student?.RegistrationId, student?.registrationId));
@@ -153,6 +156,33 @@ const StudentExamsScreen = () => {
       });
   }, [exams]);
 
+  const filteredExams = useMemo(() => {
+  const today = new Date();
+
+  const isSameDay = (d1, d2) =>
+    d1.getDate() === d2.getDate() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getFullYear() === d2.getFullYear();
+
+  return examItems.filter((exam) => {
+    const examDate = new Date(exam.examDate);
+
+    if (activeTab === 'today') {
+      return isSameDay(examDate, today);
+    }
+
+    if (activeTab === 'upcoming') {
+      return examDate > today && !exam.isAttended;
+    }
+
+    if (activeTab === 'completed') {
+      return examDate < today.setHours(0, 0, 0, 0);
+    }
+
+    return true;
+  });
+}, [examItems, activeTab]);
+
   if (loading) {
     return (
       <PrivateLayout title="My Exams" navItems={STUDENT_NAV_ITEMS}>
@@ -174,6 +204,27 @@ const StudentExamsScreen = () => {
           </View>
         ) : null}
 
+<View style={styles.tabContainer}>
+  {['today', 'upcoming', 'completed'].map((tab) => (
+    <TouchableOpacity
+      key={tab}
+      style={[
+        styles.tabItem,
+        activeTab === tab && styles.tabItemActive,
+      ]}
+      onPress={() => setActiveTab(tab)}
+    >
+      <Text
+        style={[
+          styles.tabText,
+          activeTab === tab && styles.tabTextActive,
+        ]}
+      >
+        {tab.charAt(0).toUpperCase() + tab.slice(1)}
+      </Text>
+    </TouchableOpacity>
+  ))}
+</View>
         {!studentId ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyTitle}>Student profile not available</Text>
@@ -185,8 +236,10 @@ const StudentExamsScreen = () => {
             <Text style={styles.emptyText}>Upcoming and past exams will appear here.</Text>
           </View>
         ) : (
+
+            
           <FlatList
-            data={examItems}
+            data={filteredExams}
             keyExtractor={(item) => item.id}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             contentContainerStyle={styles.listContent}
@@ -194,8 +247,8 @@ const StudentExamsScreen = () => {
               <View style={styles.card}>
                 <View style={styles.cardHeader}>
                   <View style={styles.headerLeft}>
-                    <Text style={styles.title}>{item.batchName}</Text>
-                    <Text style={styles.subtitle}>{item.topicName}</Text>
+                    <Text style={styles.title}>{item.topicName}</Text>
+                    <Text style={styles.subtitle}>{item.batchName}</Text>
                   </View>
                   <View style={[styles.statusPill, item.isAttended ? styles.statusSuccess : styles.statusPending]}>
                     <Text
@@ -391,4 +444,36 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
+  tabContainer: {
+  flexDirection: 'row',
+  backgroundColor: '#F1F5F9',
+  borderRadius: 10,
+  padding: 4,
+  marginBottom: 12,
+},
+
+tabItem: {
+  flex: 1,
+  paddingVertical: 8,
+  alignItems: 'center',
+  borderRadius: 8,
+},
+
+tabItemActive: {
+  backgroundColor: '#FFFFFF',
+  shadowColor: '#000',
+  shadowOpacity: 0.05,
+  shadowRadius: 4,
+  elevation: 1,
+},
+
+tabText: {
+  fontSize: 13,
+  fontWeight: '600',
+  color: '#64748B',
+},
+
+tabTextActive: {
+  color: '#0F172A',
+},
 });
