@@ -176,6 +176,8 @@ const StudentFeeDetailsScreen = () => {
         status,
         statusConfig,
         paymentProgress,
+        payments: payments
+
       };
     }).sort((first, second) => {
       const firstDate = new Date(first.registrationDate || 0).getTime();
@@ -184,44 +186,44 @@ const StudentFeeDetailsScreen = () => {
     });
   }, [registrations]);
 
-const downloadPDF = async (item, base64) => {
-  try {
-    const fileName = `${item.courseName}_Invoice_${Date.now()}.pdf`;
+  const downloadPDF = async (item, base64) => {
+    try {
+      const fileName = `${item.courseName}_Invoice_${Date.now()}.pdf`;
 
-    if (Platform.OS === 'android') {
-      const dirs = ReactNativeBlobUtil.fs.dirs;
+      if (Platform.OS === 'android') {
+        const dirs = ReactNativeBlobUtil.fs.dirs;
 
-      const path = `${dirs.DownloadDir}/${fileName}`;
+        const path = `${dirs.DownloadDir}/${fileName}`;
 
-      // ✅ Save file
-      await ReactNativeBlobUtil.fs.writeFile(path, base64, 'base64');
+        // ✅ Save file
+        await ReactNativeBlobUtil.fs.writeFile(path, base64, 'base64');
 
-      // ✅ Register in Downloads (notification)
-      await ReactNativeBlobUtil.android.addCompleteDownload({
-        title: fileName,
-        description: 'Course Fee Invoice',
-        mime: 'application/pdf',
-        path: path,
-        showNotification: true,
-      });
+        // ✅ Register in Downloads (notification)
+        await ReactNativeBlobUtil.android.addCompleteDownload({
+          title: fileName,
+          description: 'Course Fee Invoice',
+          mime: 'application/pdf',
+          path: path,
+          showNotification: true,
+        });
 
-       // ✅ Toast instead of alert
+        // ✅ Toast instead of alert
+        Toast.show({
+          type: 'success',
+          text1: 'Download Complete',
+          text2: 'PDF downloaded successfully..📄',
+        });
+
+      }
+    } catch (error) {
+      console.log('Download/Open error:', error);
       Toast.show({
-        type: 'success',
-        text1: 'Download Complete',
-        text2: 'PDF downloaded successfully..📄',
+        type: 'error',
+        text1: 'Error',
+        text2: 'Unable to open PDF',
       });
-
     }
-  } catch (error) {
-    console.log('Download/Open error:', error);
-    Toast.show({
-      type: 'error',
-      text1: 'Error',
-      text2: 'Unable to open PDF',
-    });
-  }
-};
+  };
 
   const getPDFBase64 = async (item) => {
     const response = await axiosClient.post(
@@ -237,7 +239,11 @@ const downloadPDF = async (item, base64) => {
         payableFee: item.payableFee,
         paidFee: item.paidFee,
         dueFee: item.dueFee,
-        payments: []
+        payments: (item.payments || []).map(p => ({
+          paymentDate: formatDate(p.paymentDate || p.PaymentDate),
+          paymentMode: p.paymentMode || p.PaymentMode || 'N/A',
+          amount: p.paymentAmount || p.PaymentAmount || 0
+        }))
       }
     );
 

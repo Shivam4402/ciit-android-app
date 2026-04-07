@@ -157,31 +157,32 @@ const StudentExamsScreen = () => {
   }, [exams]);
 
   const filteredExams = useMemo(() => {
-  const today = new Date();
+    const now = new Date();
 
-  const isSameDay = (d1, d2) =>
-    d1.getDate() === d2.getDate() &&
-    d1.getMonth() === d2.getMonth() &&
-    d1.getFullYear() === d2.getFullYear();
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
 
-  return examItems.filter((exam) => {
-    const examDate = new Date(exam.examDate);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
 
-    if (activeTab === 'today') {
-      return isSameDay(examDate, today);
-    }
+    return examItems.filter((exam) => {
+      const examDate = new Date(exam.examDate);
 
-    if (activeTab === 'upcoming') {
-      return examDate > today && !exam.isAttended;
-    }
+      if (activeTab === 'today') {
+        return examDate >= todayStart && examDate <= todayEnd;
+      }
 
-    if (activeTab === 'completed') {
-      return examDate < today.setHours(0, 0, 0, 0);
-    }
+      if (activeTab === 'upcoming') {
+        return examDate > todayEnd && !exam.isAttended;
+      }
 
-    return true;
-  });
-}, [examItems, activeTab]);
+      if (activeTab === 'completed') {
+        return exam.isAttended || examDate < todayStart;
+      }
+
+      return true;
+    });
+  }, [examItems, activeTab]);
 
   if (loading) {
     return (
@@ -204,40 +205,44 @@ const StudentExamsScreen = () => {
           </View>
         ) : null}
 
-<View style={styles.tabContainer}>
-  {['today', 'upcoming', 'completed'].map((tab) => (
-    <TouchableOpacity
-      key={tab}
-      style={[
-        styles.tabItem,
-        activeTab === tab && styles.tabItemActive,
-      ]}
-      onPress={() => setActiveTab(tab)}
-    >
-      <Text
-        style={[
-          styles.tabText,
-          activeTab === tab && styles.tabTextActive,
-        ]}
-      >
-        {tab.charAt(0).toUpperCase() + tab.slice(1)}
-      </Text>
-    </TouchableOpacity>
-  ))}
-</View>
-        {!studentId ? (
+        <View style={styles.tabContainer}>
+          {['today', 'upcoming', 'completed'].map((tab) => (
+            <TouchableOpacity
+              key={tab}
+              style={[
+                styles.tabItem,
+                activeTab === tab && styles.tabItemActive,
+              ]}
+              onPress={() => setActiveTab(tab)}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === tab && styles.tabTextActive,
+                ]}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        {filteredExams.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>Student profile not available</Text>
-            <Text style={styles.emptyText}>Please sign in again to load your exams.</Text>
-          </View>
-        ) : examItems.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>No exams found</Text>
-            <Text style={styles.emptyText}>Upcoming and past exams will appear here.</Text>
+            <Text style={styles.emptyTitle}>
+              {activeTab === 'today' && 'No exams today'}
+              {activeTab === 'upcoming' && 'No upcoming exams'}
+              {activeTab === 'completed' && 'No completed exams'}
+            </Text>
+
+            <Text style={styles.emptyText}>
+              {activeTab === 'today' && 'You have no exams scheduled for today.'}
+              {activeTab === 'upcoming' && 'No upcoming exams are scheduled.'}
+              {activeTab === 'completed' && 'You have not completed any exams yet.'}
+            </Text>
           </View>
         ) : (
 
-            
+
           <FlatList
             data={filteredExams}
             keyExtractor={(item) => item.id}
@@ -445,35 +450,35 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   tabContainer: {
-  flexDirection: 'row',
-  backgroundColor: '#F1F5F9',
-  borderRadius: 10,
-  padding: 4,
-  marginBottom: 12,
-},
+    flexDirection: 'row',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 10,
+    padding: 4,
+    marginBottom: 12,
+  },
 
-tabItem: {
-  flex: 1,
-  paddingVertical: 8,
-  alignItems: 'center',
-  borderRadius: 8,
-},
+  tabItem: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
 
-tabItemActive: {
-  backgroundColor: '#FFFFFF',
-  shadowColor: '#000',
-  shadowOpacity: 0.05,
-  shadowRadius: 4,
-  elevation: 1,
-},
+  tabItemActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+  },
 
-tabText: {
-  fontSize: 13,
-  fontWeight: '600',
-  color: '#64748B',
-},
+  tabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+  },
 
-tabTextActive: {
-  color: '#0F172A',
-},
+  tabTextActive: {
+    color: '#0F172A',
+  },
 });
