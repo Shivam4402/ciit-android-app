@@ -4,6 +4,8 @@ import LoginScreen from '../features/auth/screens/LoginScreen';
 import StudentLoginScreen from '../features/auth/screens/StudentLoginScreen';
 import EnquiryFormScreen from '../features/enquiry/screens/EnquiryFormScreen';
 import EnquiryListScreen from '../features/enquiry/screens/EnquiryListScreen';
+import TopicsScreen from '../features/topicvideo/screens/TopicsScreen';
+import PlayerScreen from '../features/topicvideo/screens/PlayerScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -14,6 +16,8 @@ const PublicNavigator = () => {
       <Stack.Screen name="StudentLogin" component={StudentLoginScreen}  options={{ headerShown: false}} />
       <Stack.Screen name="Enquiry" component={EnquiryFormScreen} />
       <Stack.Screen name="EnquiryList" component={EnquiryListScreen}  />
+      <Stack.Screen name="Topics" component={TopicsScreen} />
+      <Stack.Screen name="CoursePlayer" component={PlayerScreen} />
     </Stack.Navigator>
   );
 };
