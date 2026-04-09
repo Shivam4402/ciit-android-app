@@ -11,15 +11,7 @@ import ReactNativeBlobUtil from 'react-native-blob-util';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import FileViewer from 'react-native-file-viewer';
 import Toast from 'react-native-toast-message';
-
-
-const STUDENT_NAV_ITEMS = [
-  { label: 'Dashboard', routeName: 'StudentDashboard', icon: 'dashboard' },
-  //   { label: 'Course List', routeName: 'StudentCourses', icon: 'menu-book' },
-  { label: 'My Courses', routeName: 'StudentFeeDetails', icon: 'menu-book' },
-  { label: 'My Batches', routeName: 'StudentBatches', icon: 'groups' },
-  { label: 'My Exams', routeName: 'StudentExams', icon: 'fact-check' },
-];
+import { STUDENT_NAV_ITEMS } from '../shared/studentNavItems';
 
 const getValue = (...values) => values.find((value) => value !== undefined && value !== null);
 const safeArray = (value) => (Array.isArray(value) ? value : []);

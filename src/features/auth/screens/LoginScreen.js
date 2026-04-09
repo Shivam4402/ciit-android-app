@@ -90,12 +90,6 @@ const LoginScreen = ({ navigation }) => {
         </Text>
       </TouchableOpacity>
 
-<TouchableOpacity onPress={() => navigation.navigate('Topics')}>
-        <Text style={styles.link}>
-          View All Topics and Videos
-        </Text>
-      </TouchableOpacity>
-
     </SafeAreaView>
   );
 };

@@ -11,13 +11,7 @@ import {
 import { useSelector } from 'react-redux';
 import PrivateLayout from '../../../components/PrivateLayout';
 import { getStudentBatchAttendance, getStudentWiseBatchDetails } from '../services/studentPortalApi';
-
-const STUDENT_NAV_ITEMS = [
-  { label: 'Dashboard', routeName: 'StudentDashboard', icon: 'dashboard' },
-  { label: 'My Courses', routeName: 'StudentFeeDetails', icon: 'menu-book' },
-  { label: 'My Batches', routeName: 'StudentBatches', icon: 'groups' },
-  { label: 'My Exams', routeName: 'StudentExams', icon: 'fact-check' },
-];
+import { STUDENT_NAV_ITEMS } from '../shared/studentNavItems';
 
 const getValue = (...values) => values.find((value) => value !== undefined && value !== null);
 const safeArray = (value) => (Array.isArray(value) ? value : []);

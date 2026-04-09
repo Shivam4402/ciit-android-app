@@ -3,14 +3,7 @@ import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { useSelector } from 'react-redux';  
 import { useNavigation } from '@react-navigation/native';
 import PrivateLayout from '../../../components/PrivateLayout';
-
-const STUDENT_NAV_ITEMS = [
-  { label: 'Dashboard', routeName: 'StudentDashboard', icon: 'dashboard' },
-  // { label: 'Course List', routeName: 'StudentCourses', icon: 'menu-book' },
-  { label: 'My Courses', routeName: 'StudentFeeDetails', icon: 'menu-book' },
-  { label: 'My Batches', routeName: 'StudentBatches', icon: 'groups' },
-  { label: 'My Exams', routeName: 'StudentExams', icon: 'fact-check' },
-];
+import { STUDENT_NAV_ITEMS } from '../shared/studentNavItems';
 
 const StudentDashboardScreen = () => {
   const navigation = useNavigation();

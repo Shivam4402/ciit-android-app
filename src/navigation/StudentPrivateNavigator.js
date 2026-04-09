@@ -5,6 +5,8 @@ import StudentCoursesScreen from '../features/student/screens/StudentCoursesScre
 import StudentFeeDetailsScreen from '../features/student/screens/StudentFeeDetailsScreen';
 import StudentBatchesScreen from '../features/student/screens/StudentBatchesScreen';
 import StudentExamsScreen from '../features/student/screens/StudentExamsScreen';
+import StudentTopicsScreen from '../features/student/screens/StudentTopicsScreen';
+import PlayerScreen from '../components/PlayerScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -27,6 +29,11 @@ const StudentPrivateNavigator = () => {
         options={{ headerShown: false }}
       />
       <Stack.Screen
+        name="StudentTopics"
+        component={StudentTopicsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
         name="StudentExams"
         component={StudentExamsScreen}
         options={{ headerShown: false }}
@@ -36,6 +43,12 @@ const StudentPrivateNavigator = () => {
         component={StudentFeeDetailsScreen}
         options={{ headerShown: false }}
       />
+      <Stack.Screen
+        name="CoursePlayer"
+        component={PlayerScreen}
+        options={{ headerShown: false }}
+      />
+     
     </Stack.Navigator>
   );
 };

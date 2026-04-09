@@ -77,3 +77,24 @@ export const getStudentBatchExams = async (registrationId) => {
         throw error;
     }
 };
+
+export const getStudentCourseTopics = async (registrationId) => {
+    try {
+        if (!registrationId) return null;
+
+        const response = await axiosClient.get(`/students/student-course-topics/${registrationId}`);
+
+        if (response?.data && response.data.data !== undefined) {
+            return response.data.data || null;
+        }
+
+        return response?.data || null;
+    } catch (error) {
+        if (error?.response?.status === 404) {
+            return null;
+        }
+
+        console.log('Error fetching student course topics:', error);
+        throw error;
+    }
+};
