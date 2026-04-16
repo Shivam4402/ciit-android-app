@@ -4,18 +4,21 @@ import {
     Text,
     TouchableOpacity,
     StyleSheet,
-    Alert,
     Pressable,
     Animated,
     Easing,
     Modal,
+    TextInput,
+    ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from '@react-native-vector-icons/material-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDispatch, useSelector } from 'react-redux';
+import Toast from 'react-native-toast-message';
 import { logout } from '../features/auth/authSlice';
+import axiosClient from '../api/axiosClient';
 
 const DRAWER_WIDTH = 280;
 
@@ -32,22 +35,94 @@ const PrivateLayout = ({ title, children, navItems = NAV_ITEMS }) => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isLogoutOpen, setIsLogoutOpen] = useState(false);
+    const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+    const [oldPassword, setOldPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmNewPassword, setConfirmNewPassword] = useState('');
+    const [isChangingPassword, setIsChangingPassword] = useState(false);
     const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
 
     const activeRouteName = route?.name;
 
-    const handleLogout = () => {
+    const showError = (text1, text2 = '') => Toast.show({ type: 'error', text1, text2 });
+    const showSuccess = (text1, text2 = '') => Toast.show({ type: 'success', text1, text2 });
 
+    const handleLogout = () => {
         setIsLogoutOpen(true);
     };
 
     const confirmLogout = async () => {
+        // try {
         setIsLogoutOpen(false);
         await AsyncStorage.removeItem('token');
         await AsyncStorage.removeItem('userType');
         await AsyncStorage.removeItem('studentProfile');
         await AsyncStorage.removeItem('staffProfile');
         dispatch(logout());
+        //     showSuccess('Logged out', 'You have been logged out successfully.');
+        // } catch {
+        //     showError('Logout failed', 'Please try again.');
+        // }
+    };
+
+    const openChangePasswordModal = () => {
+        if (userType !== 'student') {
+            showError('Not supported', 'Change password is available for students only.');
+            return;
+        }
+        setOldPassword('');
+        setNewPassword('');
+        setConfirmNewPassword('');
+        setIsChangePasswordOpen(true);
+    };
+
+    const submitChangePassword = async () => {
+        const userName =
+            student?.PermanentIdentificationNumber ||
+            student?.permanentIdentificationNumber ||
+            student?.EmailAddress ||
+            student?.emailAddress;
+
+        if (!userName) return showError('Error', 'Student username is not available.');
+        if (!oldPassword || !newPassword || !confirmNewPassword) {
+            return showError('Validation', 'Old, new and confirm password are required.');
+        }
+        if (newPassword !== confirmNewPassword) {
+            return showError('Validation', 'New password and confirm password do not match.');
+        }
+        if (oldPassword === newPassword) {
+            return showError('Validation', 'New password must be different from old password.');
+        }
+
+        setIsChangingPassword(true);
+        try {
+            const response = await axiosClient.post('/auth/student-change-password', {
+                UserName: userName,
+                OldPassword: oldPassword,
+                NewPassword: newPassword,
+                ConfirmNewPassword: confirmNewPassword,
+            });
+            const message =
+                response?.data?.message ||
+                response?.data?.Message ||
+                'Password changed successfully';
+
+            showSuccess('Success', message);
+            setIsChangePasswordOpen(false);
+            setOldPassword('');
+            setNewPassword('');
+            setConfirmNewPassword('');
+        } catch (error) {
+            const message =
+                error?.response?.data?.message ||
+                error?.response?.data?.Message ||
+                (typeof error?.response?.data === 'string' ? error.response.data : '') ||
+                error?.message ||
+                'Please try again.';
+            showError('Change password failed', message);
+        } finally {
+            setIsChangingPassword(false);
+        }
     };
 
     const displayName = userType === 'student'
@@ -59,8 +134,8 @@ const PrivateLayout = ({ title, children, navItems = NAV_ITEMS }) => {
         : (staff?.userName || 'N/A');
 
     const profileRows = userType === 'student'
-        ? 
-    
+        ?
+
         [
             // { label: 'Student ID', value: student?.StudentId || student?.studentId || 'N/A' },
             // { label: 'Code', value: student?.StudentCode || student?.studentCode || 'N/A' },
@@ -134,6 +209,7 @@ const PrivateLayout = ({ title, children, navItems = NAV_ITEMS }) => {
                         </View>
 
                         <View style={styles.headerRight}>
+
                             <TouchableOpacity
                                 onPress={() => setIsProfileOpen(true)}
                                 style={styles.profileBtn}
@@ -142,6 +218,16 @@ const PrivateLayout = ({ title, children, navItems = NAV_ITEMS }) => {
                                 accessibilityLabel="Open profile"
                             >
                                 <MaterialIcons name="person-outline" size={20} color="#2563EB" />
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                onPress={openChangePasswordModal}
+                                style={styles.changePwdBtn}
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                accessibilityRole="button"
+                                accessibilityLabel="Change password"
+                            >
+                                <MaterialIcons name="lock-reset" size={20} color="#7C3AED" />
                             </TouchableOpacity>
 
                             <TouchableOpacity
@@ -208,7 +294,7 @@ const PrivateLayout = ({ title, children, navItems = NAV_ITEMS }) => {
                                     >
                                         <View style={styles.navItemInner}>
                                             <View style={[styles.iconWrap, isActive && styles.iconWrapActive]}>
-                                                <MaterialIcons 
+                                                <MaterialIcons
                                                     name={item.icon}
                                                     size={18}
                                                     color={isActive ? '#1D4ED8' : '#6B7280'}
@@ -293,6 +379,78 @@ const PrivateLayout = ({ title, children, navItems = NAV_ITEMS }) => {
                         </Pressable>
                     </Pressable>
                 </Modal>
+
+                <Modal
+                    visible={isChangePasswordOpen}
+                    transparent
+                    animationType="fade"
+                    onRequestClose={() => setIsChangePasswordOpen(false)}
+                >
+                    <Pressable style={styles.profileModalBackdrop} onPress={() => setIsChangePasswordOpen(false)}>
+                        <Pressable style={styles.profileModalCard} onPress={() => null}>
+                            <Text style={styles.logoutTitle}>Change Password</Text>
+                            <Text style={styles.logoutMessage}>Enter old password and set a new one.</Text>
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.profileLabel}>Old Password</Text>
+                                <TextInput
+                                    value={oldPassword}
+                                    onChangeText={setOldPassword}
+                                    secureTextEntry
+                                    placeholder="Enter old password"
+                                    placeholderTextColor="#94A3B8"
+                                    style={styles.input}
+                                />
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.profileLabel}>New Password</Text>
+                                <TextInput
+                                    value={newPassword}
+                                    onChangeText={setNewPassword}
+                                    secureTextEntry
+                                    placeholder="Enter new password"
+                                    placeholderTextColor="#94A3B8"
+                                    style={styles.input}
+                                />
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.profileLabel}>Confirm New Password</Text>
+                                <TextInput
+                                    value={confirmNewPassword}
+                                    onChangeText={setConfirmNewPassword}
+                                    secureTextEntry
+                                    placeholder="Re-enter new password"
+                                    placeholderTextColor="#94A3B8"
+                                    style={styles.input}
+                                />
+                            </View>
+
+                            <View style={styles.logoutActions}>
+                                <TouchableOpacity
+                                    onPress={() => setIsChangePasswordOpen(false)}
+                                    style={styles.logoutCancel}
+                                    disabled={isChangingPassword}
+                                >
+                                    <Text style={styles.logoutCancelText}>Cancel</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    onPress={submitChangePassword}
+                                    style={styles.changePwdConfirm}
+                                    disabled={isChangingPassword}
+                                >
+                                    {isChangingPassword ? (
+                                        <ActivityIndicator size="small" color="#FFFFFF" />
+                                    ) : (
+                                        <Text style={styles.logoutConfirmText}>Change Password</Text>
+                                    )}
+                                </TouchableOpacity>
+                            </View>
+                        </Pressable>
+                    </Pressable>
+                </Modal>
             </View>
         </SafeAreaView>
     );
@@ -363,6 +521,16 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
+    },
+    changePwdBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: '#F5F3FF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#DDD6FE',
     },
     profileBtn: {
         width: 40,
@@ -511,6 +679,15 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#E2E8F0',
     },
+    changePasswordModalCard: {
+        width: '100%',
+        maxWidth: 380,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 18,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+    },
     profileHeader: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -603,5 +780,26 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontWeight: '700',
         fontSize: 13,
+    },
+    inputGroup: {
+        marginBottom: 10,
+    },
+    input: {
+        height: 42,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#CBD5E1',
+        paddingHorizontal: 12,
+        color: '#0F172A',
+        backgroundColor: '#FFFFFF',
+    },
+    changePwdConfirm: {
+        minWidth: 130,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: 10,
+        backgroundColor: '#7C3AED',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 });
