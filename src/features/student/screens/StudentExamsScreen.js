@@ -256,7 +256,7 @@ const StudentExamsScreen = () => {
                         item.isAttended ? styles.statusSuccessText : styles.statusPendingText,
                       ]}
                     >
-                      {item.isAttended ? 'Attended' : 'Pending'}
+                      {item.isAttended ? 'Attended' : 'Not Attended'}
                     </Text>
                   </View>
                 </View>
