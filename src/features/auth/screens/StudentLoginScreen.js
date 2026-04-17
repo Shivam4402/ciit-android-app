@@ -28,11 +28,11 @@ const StudentLoginScreen = ({ navigation }) => {
 
       {/* Logo Section */}
       <View style={styles.logoContainer}>
-          <Image
-            source={require('../../../../assets/mainlogo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+        <Image
+          source={require('../../../../assets/mainlogo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
         <Text style={styles.subtitle}>Learn IT Skills. Build Your Career.</Text>
       </View>
 
@@ -67,18 +67,19 @@ const StudentLoginScreen = ({ navigation }) => {
 
         {error && <Text style={styles.error}>{error}</Text>}
 
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.link}>Back to Staff Login</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <Text style={styles.link}>Login as Staff</Text>
         </TouchableOpacity>
+
       </View>
 
       <TouchableOpacity onPress={() => navigation.navigate('Enquiry')}>
         <Text style={styles.link}>Fill Enquiry Form (No Login Required)</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => navigation.navigate('EnquiryList')}>
+      {/* <TouchableOpacity onPress={() => navigation.navigate('EnquiryList')}>
         <Text style={styles.link}>View All Enquiries</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </SafeAreaView>
   );
 };
@@ -92,7 +93,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
   },
-  
+
   logoContainer: {
     alignItems: 'center',
     marginBottom: 20
@@ -104,7 +105,7 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
 
-  
+
   subtitle: {
     fontSize: 13,
     color: '#777',

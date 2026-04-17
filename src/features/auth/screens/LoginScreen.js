@@ -78,11 +78,12 @@ const LoginScreen = ({ navigation }) => {
       </View>
 
       {/* Secondary Action */}
-      <TouchableOpacity onPress={() => navigation.navigate('Enquiry')}>
+      
+      {/* <TouchableOpacity onPress={() => navigation.navigate('Enquiry')}>
         <Text style={styles.link}>
           Fill Enquiry Form (No Login Required)
         </Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
       <TouchableOpacity onPress={() => navigation.navigate('EnquiryList')}>
         <Text style={styles.link}>

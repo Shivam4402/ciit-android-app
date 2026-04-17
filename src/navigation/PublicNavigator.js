@@ -10,8 +10,8 @@ const Stack = createNativeStackNavigator();
 const PublicNavigator = () => {
   return (
     <Stack.Navigator>
-      <Stack.Screen name="Login" component={LoginScreen}   options={{ headerShown: false}}  />
       <Stack.Screen name="StudentLogin" component={StudentLoginScreen}  options={{ headerShown: false}} />
+      <Stack.Screen name="Login" component={LoginScreen}   options={{ headerShown: false}}  />
       <Stack.Screen name="Enquiry" component={EnquiryFormScreen} />
       <Stack.Screen name="EnquiryList" component={EnquiryListScreen}  />
     </Stack.Navigator>
