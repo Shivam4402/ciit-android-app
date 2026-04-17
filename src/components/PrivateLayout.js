@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -46,9 +46,7 @@ const PrivateLayout = ({ title, children, navItems = NAV_ITEMS }) => {
     const [confirmNewPassword, setConfirmNewPassword] = useState('');
     const [isChangingPassword, setIsChangingPassword] = useState(false);
     const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
-    const [profilePhotoUri, setProfilePhotoUri] = useState(
-        student?.ProfilePhoto || student?.profilePhoto || ''
-    );
+    const [profilePhotoUri, setProfilePhotoUri] = useState('');
     const [isPhotoLoadFailed, setIsPhotoLoadFailed] = useState(false);
 
     const normalizePhotoUrl = (url) => {
@@ -57,6 +55,13 @@ const PrivateLayout = ({ title, children, navItems = NAV_ITEMS }) => {
             .replace('http://localhost:', 'http://10.0.2.2:')
             .replace('http://127.0.0.1:', 'http://10.0.2.2:');
     };
+
+    // keep local state in sync with redux student once it hydrates after app start
+    useEffect(() => {
+        const nextPhoto = student?.ProfilePhoto || student?.profilePhoto || '';
+        setProfilePhotoUri(nextPhoto);
+        setIsPhotoLoadFailed(false);
+    }, [student?.ProfilePhoto, student?.profilePhoto]);
 
     const resolvedProfilePhotoUri = normalizePhotoUrl(profilePhotoUri);
 
@@ -197,7 +202,23 @@ const PrivateLayout = ({ title, children, navItems = NAV_ITEMS }) => {
                 payload?.profilePhoto ||
                 payload?.ProfilePhoto;
 
-            if (newPhoto) setProfilePhotoUri(newPhoto);
+            if (newPhoto) {
+                setProfilePhotoUri(newPhoto);
+                setIsPhotoLoadFailed(false);
+
+                // persist into stored student profile so rebuild/restart keeps it
+                const raw = await AsyncStorage.getItem('studentProfile');
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    const updated = {
+                        ...parsed,
+                        ProfilePhoto: newPhoto,
+                        profilePhoto: newPhoto,
+                    };
+                    await AsyncStorage.setItem('studentProfile', JSON.stringify(updated));
+                }
+            }
+
             showSuccess('Success', message);
         } catch (error) {
             console.log('Photo upload error =>', {
@@ -337,12 +358,15 @@ const PrivateLayout = ({ title, children, navItems = NAV_ITEMS }) => {
                                 accessibilityRole="button"
                                 accessibilityLabel="Open profile"
                             >
-                                {/* <MaterialIcons name="person-outline" size={20} color="#2563EB" /> */}
-                                {profilePhotoUri ? (
-                                        <Image source={{ uri: profilePhotoUri }} style={styles.profileAvatarImage} />
-                                    ) : (
-                                        <MaterialIcons name="person" size={24} color="#1D4ED8" />
-                                    )}
+                                {resolvedProfilePhotoUri && !isPhotoLoadFailed ? (
+                                    <Image
+                                        source={{ uri: resolvedProfilePhotoUri }}
+                                        style={styles.profileAvatarImage}
+                                        onError={() => setIsPhotoLoadFailed(true)}
+                                    />
+                                ) : (
+                                    <MaterialIcons name="person" size={24} color="#1D4ED8" />
+                                )}
                             </TouchableOpacity>
 
                             {/* <TouchableOpacity
@@ -1065,7 +1089,7 @@ const styles = StyleSheet.create({
         color: '#B91C1C',
     },
      mainLogo: {
-        width: 80,
-        height: 40,
+        width: 100,
+        height: 80,
     },
 });

@@ -13,6 +13,7 @@ import { useSelector } from 'react-redux';
 import PrivateLayout from '../../../components/PrivateLayout';
 import { getStudentCourseTopics, getStudentWiseBatchDetails } from '../services/studentPortalApi';
 import { STUDENT_NAV_ITEMS } from '../shared/studentNavItems';
+import { getVideosByFolder } from '../../../services/videoApi';
 
 const getValue = (...values) => values.find((value) => value !== undefined && value !== null);
 const safeArray = (value) => (Array.isArray(value) ? value : []);
@@ -20,6 +21,11 @@ const safeArray = (value) => (Array.isArray(value) ? value : []);
 const toNumber = (value) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const formatCountLabel = (count, singular, plural) => {
+  if (count === 1) return `1 ${singular}`;
+  return `${count} ${plural}`;
 };
 
 const StudentTopicsScreen = () => {
@@ -32,6 +38,7 @@ const StudentTopicsScreen = () => {
   const [error, setError] = useState('');
   const [courseInfo, setCourseInfo] = useState(null);
   const [topics, setTopics] = useState([]);
+  const [videoCounts, setVideoCounts] = useState({}); // { [folderId]: number }
 
   const resolveRegistrationId = async () => {
     const directRegistrationId = toNumber(getValue(student?.RegistrationId, student?.registrationId));
@@ -52,6 +59,25 @@ const StudentTopicsScreen = () => {
     );
 
     return firstRegistrationId;
+  };
+
+  const loadFolderVideoCounts = async (topicList) => {
+    const entries = await Promise.all(
+      safeArray(topicList).map(async (topic) => {
+        const folderId = getValue(topic?.publicFolderId, topic?.PublicFolderId);
+        const key = String(folderId || '');
+        if (!folderId) return [key, 0];
+
+        try {
+          const list = await getVideosByFolder(folderId);
+          return [key, Array.isArray(list) ? list.length : 0];
+        } catch {
+          return [key, 0];
+        }
+      }),
+    );
+
+    setVideoCounts(Object.fromEntries(entries));
   };
 
   const loadTopics = async (showLoader = true) => {
@@ -93,10 +119,12 @@ const StudentTopicsScreen = () => {
 
       setCourseInfo(mappedCourseInfo);
       setTopics(topicList);
+      void loadFolderVideoCounts(topicList);
     } catch (requestError) {
       setError('Unable to load course topics right now.');
       setCourseInfo(null);
       setTopics([]);
+      setVideoCounts({});
     } finally {
       setLoading(false);
     }
@@ -116,14 +144,20 @@ const StudentTopicsScreen = () => {
   };
 
   const topicItems = useMemo(() => {
-    return safeArray(topics).map((topic, index) => ({
-      id: String(getValue(topic?.courseTopicId, topic?.CourseTopicId, index + 1)),
-      sequence: index + 1,
-      topicName: getValue(topic?.topicName, topic?.TopicName, 'N/A'),
-      topicId: getValue(topic?.topicId, topic?.TopicId, 'N/A'),
-      publicFolderId: getValue(topic?.publicFolderId, topic?.PublicFolderId),
-    }));
-  }, [topics]);
+    return safeArray(topics).map((topic, index) => {
+      const publicFolderId = getValue(topic?.publicFolderId, topic?.PublicFolderId);
+      const folderKey = String(publicFolderId || '');
+
+      return {
+        id: String(getValue(topic?.courseTopicId, topic?.CourseTopicId, index + 1)),
+        sequence: index + 1,
+        topicName: getValue(topic?.topicName, topic?.TopicName, 'N/A'),
+        topicId: getValue(topic?.topicId, topic?.TopicId, 'N/A'),
+        publicFolderId,
+        videoCount: videoCounts[folderKey] ?? 0,
+      };
+    });
+  }, [topics, videoCounts]);
 
   const stats = useMemo(() => {
     const total = topicItems.length;
@@ -136,7 +170,7 @@ const StudentTopicsScreen = () => {
       <PrivateLayout title="Video Lectures" navItems={STUDENT_NAV_ITEMS}>
         <View style={styles.loaderWrap}>
           <ActivityIndicator size="large" color="#2563EB" />
-          <Text style={styles.loaderText}>Fetching your course topics...</Text>
+          <Text style={styles.loaderText}>Preparing your learning dashboard...</Text>
         </View>
       </PrivateLayout>
     );
@@ -145,22 +179,17 @@ const StudentTopicsScreen = () => {
   return (
     <PrivateLayout title="Video Lectures" navItems={STUDENT_NAV_ITEMS}>
       <View style={styles.container}>
-        {error ? (
-          <View style={styles.alertBox}>
-            <Text style={styles.alertTitle}>We ran into a problem</Text>
-            <Text style={styles.alertText}>{error}</Text>
-          </View>
-        ) : null}
-
         {!studentId ? (
           <View style={styles.emptyState}>
+            <Text style={styles.emptyEmoji}>👤</Text>
             <Text style={styles.emptyTitle}>Student profile not available</Text>
-            <Text style={styles.emptyText}>Please sign in again to load your topics.</Text>
+            <Text style={styles.emptyText}>Please sign in again to load your personalized topics.</Text>
           </View>
         ) : topicItems.length === 0 ? (
           <View style={styles.emptyState}>
+            <Text style={styles.emptyEmoji}>📚</Text>
             <Text style={styles.emptyTitle}>No topics found</Text>
-            <Text style={styles.emptyText}>Course topics will appear here once mapped.</Text>
+            <Text style={styles.emptyText}>Your course topics will appear here once they are mapped.</Text>
           </View>
         ) : (
           <FlatList
@@ -169,27 +198,51 @@ const StudentTopicsScreen = () => {
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             contentContainerStyle={styles.listContent}
             ListHeaderComponent={
-              <View style={styles.summaryCard}>
-                <Text style={styles.summaryLabel}>Course</Text>
-                <Text style={styles.summaryTitle}>{courseInfo?.courseName || 'N/A'}</Text>
-                <Text style={styles.summaryMeta}>Student: {courseInfo?.studentName || 'Student'}</Text>
-                <Text style={styles.summaryMeta}>Registration ID: {courseInfo?.registrationId || 'N/A'}</Text>
+              <>
+                {error ? (
+                  <View style={styles.alertBox}>
+                    <Text style={styles.alertTitle}>We couldn’t refresh everything</Text>
+                    <Text style={styles.alertText}>{error}</Text>
+                  </View>
+                ) : null}
 
-                {/* <View style={styles.statsRow}>
-                  <View style={styles.statPill}>
-                    <Text style={styles.statValue}>{stats.total}</Text>
-                    <Text style={styles.statLabel}>Total</Text>
+                <View style={styles.summaryCard}>
+                  <Text style={styles.summaryLabel}>Course Overview</Text>
+                  <Text style={styles.summaryTitle}>{courseInfo?.courseName || 'N/A'}</Text>
+
+                  {/* <View style={styles.summaryMetaRow}>
+                    <Text style={styles.summaryMeta}>Student</Text>
+                    <Text style={styles.summaryMetaValue}>{courseInfo?.studentName || 'Student'}</Text>
+                  </View> */}
+
+                  {/* <View style={styles.summaryMetaRow}>
+                    <Text style={styles.summaryMeta}>Registration ID</Text>
+                    <Text style={styles.summaryMetaValue}>{courseInfo?.registrationId || 'N/A'}</Text>
+                  </View> */}
+
+                  <View style={styles.statsRow}>
+                    <View style={styles.statPill}>
+                      <Text style={styles.statValue}>{stats.total}</Text>
+                      <Text style={styles.statLabel}>Total Topics</Text>
+                    </View>
+                    <View style={[styles.statPill, styles.statPillSuccess]}>
+                      <Text style={[styles.statValue, styles.statValueSuccess]}>{stats.available}</Text>
+                      <Text style={[styles.statLabel, styles.statLabelSuccess]}>Ready</Text>
+                    </View>
+                    <View style={[styles.statPill, styles.statPillMuted]}>
+                      <Text style={[styles.statValue, styles.statValueMuted]}>{stats.pending}</Text>
+                      <Text style={[styles.statLabel, styles.statLabelMuted]}>Pending</Text>
+                    </View>
                   </View>
-                  <View style={[styles.statPill, styles.statPillSuccess]}>
-                    <Text style={[styles.statValue, styles.statValueSuccess]}>{stats.available}</Text>
-                    <Text style={[styles.statLabel, styles.statLabelSuccess]}>Available</Text>
+                </View>
+
+                <View style={styles.sectionRow}>
+                  <Text style={styles.sectionTitle}>Course Topics</Text>
+                  <View style={styles.sectionPill}>
+                    <Text style={styles.sectionPillText}>{formatCountLabel(topicItems.length, 'Topic', 'Topics')}</Text>
                   </View>
-                  <View style={[styles.statPill, styles.statPillMuted]}>
-                    <Text style={[styles.statValue, styles.statValueMuted]}>{stats.pending}</Text>
-                    <Text style={[styles.statLabel, styles.statLabelMuted]}>Pending</Text>
-                  </View>
-                </View> */}
-              </View>
+                </View>
+              </>
             }
             renderItem={({ item }) => {
               const isAvailable = Boolean(item.publicFolderId);
@@ -207,6 +260,8 @@ const StudentTopicsScreen = () => {
                     })
                   }
                 >
+                  <View style={[styles.topAccent, isAvailable ? styles.topAccentReady : styles.topAccentPending]} />
+
                   <View style={styles.cardHeader}>
                     <View style={styles.indexPill}>
                       <Text style={styles.indexPillText}>{item.sequence}</Text>
@@ -215,7 +270,7 @@ const StudentTopicsScreen = () => {
                       <Text style={styles.title} numberOfLines={2}>
                         {item.topicName}
                       </Text>
-                      <Text style={styles.subtitle}>Topic #{item.topicId}</Text>
+                      <Text style={styles.subtitle}>{formatCountLabel(item.videoCount, 'video', 'videos')}</Text>
                     </View>
                     <Text style={styles.chevron}>›</Text>
                   </View>
@@ -241,9 +296,12 @@ const StudentTopicsScreen = () => {
 
                   <View style={styles.divider} />
 
-                  <Text style={[styles.ctaText, !isAvailable ? styles.ctaTextDisabled : null]}>
-                    {isAvailable ? 'Open player' : 'Content will be added soon'}
-                  </Text>
+                  <View style={styles.footerRow}>
+                    <Text style={[styles.ctaText, !isAvailable ? styles.ctaTextDisabled : null]}>
+                      {isAvailable ? 'Open player' : 'Content will be added soon'}
+                    </Text>
+                    <Text style={styles.topicCode}>Topic ID: {item.topicId}</Text>
+                  </View>
                 </TouchableOpacity>
               );
             }}
@@ -259,6 +317,8 @@ export default StudentTopicsScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingHorizontal: 12,
+    paddingTop: 8,
   },
   loaderWrap: {
     flex: 1,
@@ -268,40 +328,50 @@ const styles = StyleSheet.create({
   },
   loaderText: {
     marginTop: 10,
-    fontSize: 13,
+    fontSize: 14,
     color: '#64748B',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   listContent: {
-    paddingBottom: 20,
+    paddingBottom: 24,
   },
 
   summaryCard: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: 14,
+    backgroundColor: '#F8FAFF',
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#DBEAFE',
-    padding: 14,
-    marginBottom: 12,
+    padding: 16,
+    marginBottom: 14,
   },
   summaryLabel: {
     fontSize: 11,
-    color: '#64748B',
+    color: '#475569',
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    letterSpacing: 0.8,
     fontWeight: '700',
   },
   summaryTitle: {
-    marginTop: 4,
-    fontSize: 17,
+    marginTop: 6,
+    fontSize: 20,
     fontWeight: '800',
     color: '#1E3A8A',
   },
+  summaryMetaRow: {
+    marginTop: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   summaryMeta: {
-    marginTop: 4,
     fontSize: 12,
-    color: '#475569',
-    fontWeight: '500',
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  summaryMetaValue: {
+    fontSize: 12,
+    color: '#0F172A',
+    fontWeight: '700',
   },
 
   statsRow: {
@@ -312,7 +382,7 @@ const styles = StyleSheet.create({
   statPill: {
     flex: 1,
     borderRadius: 10,
-    paddingVertical: 8,
+    paddingVertical: 9,
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
@@ -327,7 +397,7 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   statValue: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '800',
     color: '#1E3A8A',
   },
@@ -349,36 +419,64 @@ const styles = StyleSheet.create({
   statLabelMuted: {
     color: '#64748B',
   },
+  sectionRow: {
+    marginBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sectionTitle: {
+    fontSize: 14,
+    color: '#0F172A',
+    fontWeight: '800',
+  },
+  sectionPill: {
+    borderRadius: 999,
+    backgroundColor: '#E2E8F0',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  sectionPillText: {
+    color: '#334155',
+    fontSize: 11,
+    fontWeight: '800',
+  },
 
   alertBox: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: '#FFF7ED',
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: '#FDBA74',
     marginBottom: 12,
   },
   alertTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#991B1B',
+    color: '#9A3412',
     marginBottom: 4,
   },
   alertText: {
     fontSize: 13,
-    color: '#B91C1C',
+    color: '#C2410C',
   },
 
   emptyState: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 14,
-    padding: 18,
+    marginTop: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingVertical: 24,
+    paddingHorizontal: 18,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     alignItems: 'center',
   },
+  emptyEmoji: {
+    fontSize: 26,
+    marginBottom: 10,
+  },
   emptyTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
     color: '#0F172A',
     marginBottom: 6,
@@ -386,24 +484,41 @@ const styles = StyleSheet.create({
   emptyText: {
     textAlign: 'center',
     color: '#64748B',
-    fontSize: 14,
+    fontSize: 13,
+    maxWidth: 280,
+    lineHeight: 19,
   },
 
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     padding: 14,
     marginBottom: 10,
     shadowColor: '#0F172A',
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
     shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
+    elevation: 2,
   },
   cardDisabled: {
-    opacity: 0.72,
+    opacity: 0.84,
+  },
+  topAccent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  topAccentReady: {
+    backgroundColor: '#2563EB',
+  },
+  topAccentPending: {
+    backgroundColor: '#CBD5E1',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -414,10 +529,12 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#DBEAFE',
+    backgroundColor: '#EAF1FF',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
   },
   indexPillText: {
     color: '#1D4ED8',
@@ -430,21 +547,21 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     color: '#0F172A',
-    fontWeight: '800',
+    fontWeight: '700',
     lineHeight: 20,
   },
   subtitle: {
     marginTop: 2,
     fontSize: 12,
-    color: '#64748B',
-    fontWeight: '600',
+    color: '#475569',
+    fontWeight: '700',
   },
   chevron: {
     marginLeft: 8,
-    fontSize: 22,
+    fontSize: 24,
     lineHeight: 22,
     color: '#94A3B8',
-    fontWeight: '700',
+    fontWeight: '400',
   },
   metaRow: {
     flexDirection: 'row',
@@ -458,14 +575,18 @@ const styles = StyleSheet.create({
   },
   resourcePill: {
     borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
   },
   resourceReady: {
     backgroundColor: '#DCFCE7',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
   },
   resourcePending: {
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#EEF2F7',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
   },
   resourceText: {
     fontSize: 11,
@@ -482,13 +603,23 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#F1F5F9',
   },
-  ctaText: {
+  footerRow: {
     marginTop: 9,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  ctaText: {
     fontSize: 12,
     fontWeight: '700',
     color: '#2563EB',
   },
   ctaTextDisabled: {
     color: '#64748B',
+  },
+  topicCode: {
+    fontSize: 11,
+    color: '#94A3B8',
+    fontWeight: '700',
   },
 });
