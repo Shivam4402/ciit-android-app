@@ -103,6 +103,15 @@ const authSlice = createSlice({
             state.staff = null;
             // AsyncStorage.removeItem('token');
         },
+        updateStudentProfile: (state, action) => {
+            const nextStudent = action.payload || null;
+            if (!nextStudent) return;
+
+            state.student = {
+                ...(state.student || {}),
+                ...nextStudent,
+            };
+        },
     },
     extraReducers: (builder) => {
         builder
@@ -145,5 +154,5 @@ const authSlice = createSlice({
     },
 });
 
-export const { logout } = authSlice.actions;
+export const { logout, updateStudentProfile } = authSlice.actions;
 export default authSlice.reducer;

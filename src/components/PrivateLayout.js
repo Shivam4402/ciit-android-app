@@ -20,9 +20,10 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDispatch, useSelector } from 'react-redux';
 import Toast from 'react-native-toast-message';
-import { logout } from '../features/auth/authSlice';
+import { logout, updateStudentProfile } from '../features/auth/authSlice';
 import axiosClient from '../api/axiosClient';
 import { launchImageLibrary } from 'react-native-image-picker';
+import { getStudentDetailsById } from '../features/student/services/studentPortalApi';
 
 const DRAWER_WIDTH = 280;
 
@@ -30,6 +31,13 @@ const NAV_ITEMS = [
     { label: 'Dashboard', routeName: 'Dashboard', icon: 'dashboard' },
     { label: 'Students List', routeName: 'StudentsList', icon: 'groups' },
 ];
+
+const getStudentPhoto = (student) =>
+    student?.ProfilePhoto ||
+    student?.profilePhoto ||
+    student?.ProfileImage ||
+    student?.profileImage ||
+    '';
 
 const PrivateLayout = ({ title, children, navItems = NAV_ITEMS }) => {
     const navigation = useNavigation();
@@ -56,12 +64,87 @@ const PrivateLayout = ({ title, children, navItems = NAV_ITEMS }) => {
             .replace('http://127.0.0.1:', 'http://10.0.2.2:');
     };
 
-    // keep local state in sync with redux student once it hydrates after app start
+    // sync from redux first, then fallback to persisted storage when redux is not hydrated yet
     useEffect(() => {
-        const nextPhoto = student?.ProfilePhoto || student?.profilePhoto || '';
-        setProfilePhotoUri(nextPhoto);
-        setIsPhotoLoadFailed(false);
-    }, [student?.ProfilePhoto, student?.profilePhoto]);
+        let isCancelled = false;
+
+        const syncPhoto = async () => {
+            if (userType !== 'student') {
+                setProfilePhotoUri('');
+                setIsPhotoLoadFailed(false);
+                return;
+            }
+
+            const nextPhoto = getStudentPhoto(student);
+            if (nextPhoto) {
+                setProfilePhotoUri(nextPhoto);
+                setIsPhotoLoadFailed(false);
+                return;
+            }
+
+            try {
+                const raw = await AsyncStorage.getItem('studentProfile');
+                if (!raw || isCancelled) return;
+
+                const storedStudent = JSON.parse(raw);
+                const storedPhoto = getStudentPhoto(storedStudent);
+                if (storedPhoto) {
+                    setProfilePhotoUri(storedPhoto);
+                    setIsPhotoLoadFailed(false);
+                }
+            } catch {
+                // ignore storage parse failures silently
+            }
+        };
+
+        syncPhoto();
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [userType, student?.ProfilePhoto, student?.profilePhoto, student?.ProfileImage, student?.profileImage]);
+
+    // optional API fallback: when photo is missing, re-fetch latest student details once
+    useEffect(() => {
+        let isCancelled = false;
+
+        const hydratePhotoFromApi = async () => {
+            if (userType !== 'student') return;
+
+            const existingPhoto = getStudentPhoto(student);
+            if (existingPhoto) return;
+
+            const studentId = student?.StudentId || student?.studentId;
+            if (!studentId) return;
+
+            try {
+                const details = await getStudentDetailsById(studentId);
+                if (!details || isCancelled) return;
+
+                const mergedStudent = {
+                    ...(student || {}),
+                    ...details,
+                };
+
+                const apiPhoto = getStudentPhoto(mergedStudent);
+                if (apiPhoto) {
+                    setProfilePhotoUri(apiPhoto);
+                    setIsPhotoLoadFailed(false);
+                }
+
+                await AsyncStorage.setItem('studentProfile', JSON.stringify(mergedStudent));
+                dispatch(updateStudentProfile(mergedStudent));
+            } catch {
+                // keep UI stable; storage/redux fallback already handles most cases
+            }
+        };
+
+        hydratePhotoFromApi();
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [dispatch, userType, student?.StudentId, student?.studentId]);
 
     const resolvedProfilePhotoUri = normalizePhotoUrl(profilePhotoUri);
 
@@ -216,6 +299,15 @@ const PrivateLayout = ({ title, children, navItems = NAV_ITEMS }) => {
                         profilePhoto: newPhoto,
                     };
                     await AsyncStorage.setItem('studentProfile', JSON.stringify(updated));
+                    dispatch(updateStudentProfile(updated));
+                } else {
+                    const updated = {
+                        ...(student || {}),
+                        ProfilePhoto: newPhoto,
+                        profilePhoto: newPhoto,
+                    };
+                    await AsyncStorage.setItem('studentProfile', JSON.stringify(updated));
+                    dispatch(updateStudentProfile(updated));
                 }
             }
 
