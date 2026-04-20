@@ -8,7 +8,7 @@ import Share from 'react-native-share';
 import axiosClient from '../../../api/axiosClient';
 import { TouchableOpacity, Platform } from 'react-native';
 import ReactNativeBlobUtil from 'react-native-blob-util';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import MaterialIcons from '@react-native-vector-icons/material-icons';
 import FileViewer from 'react-native-file-viewer';
 import Toast from 'react-native-toast-message';
 import { STUDENT_NAV_ITEMS } from '../shared/studentNavItems';
@@ -398,7 +398,7 @@ const StudentFeeDetailsScreen = () => {
                     disabled={loadingId === item.id}
                   >
                     <View style={styles.btnContent}>
-                      <Icon name="download" size={18} color="#fff" />
+                      <MaterialIcons name="download" size={18} color="#fff" />
                       <Text style={styles.downloadText}>Download</Text>
                     </View>
                   </TouchableOpacity>
@@ -413,7 +413,7 @@ const StudentFeeDetailsScreen = () => {
                     }}
                   >
                     <View style={styles.btnContent}>
-                      <Icon name="share" size={18} color="#2563EB" />
+                      <MaterialIcons name="share" size={18} color="#2563EB" />
                       <Text style={styles.shareText}>Share</Text>
                     </View>
                   </TouchableOpacity>
