@@ -98,3 +98,39 @@ export const getStudentCourseTopics = async (registrationId) => {
         throw error;
     }
 };
+
+export const getStudentExamReport = async (registrationId) => {
+    try {
+        if (!registrationId) return [];
+
+        const response = await axiosClient.get(`/students/student-exam-report/${registrationId}`);
+
+        if (response?.data && response.data.data !== undefined) {
+            return response.data.data || [];
+        }
+
+        return response?.data || [];
+    } catch (error) {
+        if (error?.response?.status === 404) {
+            return [];
+        }
+
+        console.log('Error fetching student exam report:', error);
+        throw error;
+    }
+};
+
+export const generateStudentExamReportCertificate = async (registrationId) => {
+    try {
+        if (!registrationId) return '';
+
+        const response = await axiosClient.post('/students/generate-exam-report-certificate', {
+            RegistrationId: registrationId,
+        });
+
+        return response?.data || '';
+    } catch (error) {
+        console.log('Error generating exam report certificate:', error);
+        throw error;
+    }
+};

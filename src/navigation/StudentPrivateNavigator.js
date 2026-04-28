@@ -5,6 +5,7 @@ import StudentCoursesScreen from '../features/student/screens/StudentCoursesScre
 import StudentFeeDetailsScreen from '../features/student/screens/StudentFeeDetailsScreen';
 import StudentBatchesScreen from '../features/student/screens/StudentBatchesScreen';
 import StudentExamsScreen from '../features/student/screens/StudentExamsScreen';
+import StudentExamReportScreen from '../features/student/screens/StudentExamReportScreen';
 import StudentTopicsScreen from '../features/student/screens/StudentTopicsScreen';
 import PlayerScreen from '../components/PlayerScreen';
 
@@ -36,6 +37,11 @@ const StudentPrivateNavigator = () => {
       <Stack.Screen
         name="StudentExams"
         component={StudentExamsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="StudentExamReport"
+        component={StudentExamReportScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

@@ -43,6 +43,7 @@
     { label: 'My Batches', routeName: 'StudentBatches', icon: 'groups', color: '#0EA5E9' },
     { label: 'Video Lectures', routeName: 'StudentTopics', icon: 'smart-display', color: '#7C3AED' },
     { label: 'My Exams', routeName: 'StudentExams', icon: 'fact-check', color: '#F59E0B' },
+    { label: 'Exam Report', routeName: 'StudentExamReport', icon: 'assessment', color: '#14B8A6' },
   ];
 
   const StudentDashboardScreen = () => {

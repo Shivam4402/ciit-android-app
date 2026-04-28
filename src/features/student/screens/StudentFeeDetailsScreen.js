@@ -9,7 +9,6 @@ import axiosClient from '../../../api/axiosClient';
 import { TouchableOpacity, Platform } from 'react-native';
 import ReactNativeBlobUtil from 'react-native-blob-util';
 import MaterialIcons from '@react-native-vector-icons/material-icons';
-import FileViewer from 'react-native-file-viewer';
 import Toast from 'react-native-toast-message';
 import { STUDENT_NAV_ITEMS } from '../shared/studentNavItems';
 
@@ -184,35 +183,49 @@ const StudentFeeDetailsScreen = () => {
 
       if (Platform.OS === 'android') {
         const dirs = ReactNativeBlobUtil.fs.dirs;
-
         const path = `${dirs.DownloadDir}/${fileName}`;
 
-        // ✅ Save file
+        // Save file
         await ReactNativeBlobUtil.fs.writeFile(path, base64, 'base64');
 
-        // ✅ Register in Downloads (notification)
+        // Make visible to Downloads/MediaStore
+        await ReactNativeBlobUtil.fs.scanFile([{ path, mime: 'application/pdf' }]);
+
+        // Register in Downloads (notification)
         await ReactNativeBlobUtil.android.addCompleteDownload({
           title: fileName,
           description: 'Course Fee Invoice',
           mime: 'application/pdf',
-          path: path,
+          path,
           showNotification: true,
         });
 
-        // ✅ Toast instead of alert
+        // Open instantly
+        await ReactNativeBlobUtil.android.actionViewIntent(path, 'application/pdf');
+
         Toast.show({
           type: 'success',
           text1: 'Download Complete',
-          text2: 'PDF downloaded successfully..📄',
+          text2: 'PDF downloaded and opened.',
         });
-
+        return;
       }
+
+      // iOS fallback
+      const iosPath = `${RNFS.CachesDirectoryPath}/${fileName}`;
+      await RNFS.writeFile(iosPath, base64, 'base64');
+      await Share.open({
+        url: `file://${iosPath}`,
+        type: 'application/pdf',
+        filename: fileName,
+        failOnCancel: false,
+      });
     } catch (error) {
       console.log('Download/Open error:', error);
       Toast.show({
         type: 'error',
         text1: 'Error',
-        text2: 'Unable to open PDF',
+        text2: 'Unable to download/open PDF',
       });
     }
   };
