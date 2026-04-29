@@ -85,11 +85,11 @@ const LoginScreen = ({ navigation }) => {
         </Text>
       </TouchableOpacity> */}
 
-      <TouchableOpacity onPress={() => navigation.navigate('EnquiryList')}>
+      {/* <TouchableOpacity onPress={() => navigation.navigate('EnquiryList')}>
         <Text style={styles.link}>
           View All Enquiries
         </Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
     </SafeAreaView>
   );

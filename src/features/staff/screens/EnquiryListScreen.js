@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, ActivityIndicator, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { getAllEnquiries, getBranches } from '../services/enquiryApi';
+import PrivateLayout from '../../../components/PrivateLayout';
+import { getAllEnquiries, getBranches } from '../../enquiry/services/enquiryApi';
 import { Dropdown } from 'react-native-element-dropdown';
 import Modal from 'react-native-modal';
 
@@ -90,62 +91,27 @@ export default function EnquiryListScreen() {
     }, [searchText, selectedBranch, data]);
 
     if (loading) {
-        return <ActivityIndicator size="large" />;
+        return (
+            <PrivateLayout title="Enquiry List">
+                <View style={styles.loaderWrap}>
+                    <ActivityIndicator size="large" color="#2563EB" />
+                </View>
+            </PrivateLayout>
+        );
     }
 
     return (
-        <View style={{ padding: 10 }}>
+        <PrivateLayout title="Enquiry List">
+            <View style={styles.container}>
 
-            <View style={{
-                backgroundColor: '#FFFFFF',
-                borderRadius: 16,
-                flexDirection: 'row',
-                alignItems: 'center',
-                paddingHorizontal: 14,
-                marginBottom: 12,
-                height: 48,
-
-                borderWidth: 1,
-                borderColor: '#ECEFF3',
-
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.05,
-                shadowRadius: 8,
-                elevation: 2
-            }}>
-                {/* Clean Minimal Icon */}
                 <View style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 8,
-                    backgroundColor: '#F3F4F6',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    marginRight: 10
-                }}>
-                    <Text style={{ fontSize: 12, color: '#666' }}>🔍</Text>
-                </View>
-
-                <TextInput
-                    placeholder="Search by name or mobile"
-                    placeholderTextColor="#9AA0A6"
-                    value={searchText}
-                    onChangeText={setSearchText}
-                    style={{
-                        flex: 1,
-                        fontSize: 14,
-                        color: '#111'
-                    }}
-                />
-            </View>
-            <Dropdown
-                style={{
-                    height: 48,
                     backgroundColor: '#FFFFFF',
                     borderRadius: 16,
+                    flexDirection: 'row',
+                    alignItems: 'center',
                     paddingHorizontal: 14,
                     marginBottom: 12,
+                    height: 48,
 
                     borderWidth: 1,
                     borderColor: '#ECEFF3',
@@ -155,113 +121,145 @@ export default function EnquiryListScreen() {
                     shadowOpacity: 0.05,
                     shadowRadius: 8,
                     elevation: 2
-                }}
-                containerStyle={{
-                    borderRadius: 16,
-                    paddingVertical: 8,
-                    elevation: 6
-                }}
-                selectedTextStyle={{
-                    fontSize: 14,
-                    fontWeight: '500',
-                    color: '#111'
-                }}
-                placeholderStyle={{
-                    color: '#9AA0A6',
-                    fontSize: 14
-                }}
-                itemTextStyle={{
-                    fontSize: 14,
-                    color: '#333'
-                }}
-                placeholder="Select Branch"
-                data={branchOptions}
-                labelField="label"
-                valueField="value"
-                value={selectedBranch}
-                onChange={item => setSelectedBranch(item.value)}
-                maxHeight={220}
-            />
+                }}>
+                    <View style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 8,
+                        backgroundColor: '#F3F4F6',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        marginRight: 10
+                    }}>
+                        <Text style={{ fontSize: 12, color: '#666' }}>🔍</Text>
+                    </View>
 
-            {filteredData.length === 0 ? (
-                <Text style={{ textAlign: 'center', marginTop: 20 }}>
-                    No Data Found
-                </Text>
-            ) : (
-                <FlatList
-                    data={filteredData}
-                    keyExtractor={(item) => item.enquiryId.toString()}
-                    refreshing={refreshing}
-                    onRefresh={onRefresh}
-                    renderItem={({ item }) => (
-                        <TouchableOpacity
-                            activeOpacity={0.85}
-                            onPress={() => {
-                                setSelectedItem(item);
-                                setIsModalVisible(true);
-                            }}
-                        >
-                            <View style={{
-                                backgroundColor: '#FFFFFF',
-                                borderRadius: 20,
-                                padding: 16,
-                                marginBottom: 14,
+                    <TextInput
+                        placeholder="Search by name or mobile"
+                        placeholderTextColor="#9AA0A6"
+                        value={searchText}
+                        onChangeText={setSearchText}
+                        style={{
+                            flex: 1,
+                            fontSize: 14,
+                            color: '#111'
+                        }}
+                    />
+                </View>
+                <Dropdown
+                    style={{
+                        height: 48,
+                        backgroundColor: '#FFFFFF',
+                        borderRadius: 16,
+                        paddingHorizontal: 14,
+                        marginBottom: 12,
 
-                                // Premium shadow (iOS + Android)
-                                shadowColor: '#000',
-                                shadowOffset: { width: 0, height: 6 },
-                                shadowOpacity: 0.08,
-                                shadowRadius: 10,
-                                elevation: 4,
+                        borderWidth: 1,
+                        borderColor: '#ECEFF3',
 
-                                borderWidth: 1,
-                                borderColor: '#F0F0F0'
-                            }}>
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.05,
+                        shadowRadius: 8,
+                        elevation: 2
+                    }}
+                    containerStyle={{
+                        borderRadius: 16,
+                        paddingVertical: 8,
+                        elevation: 6
+                    }}
+                    selectedTextStyle={{
+                        fontSize: 14,
+                        fontWeight: '500',
+                        color: '#111'
+                    }}
+                    placeholderStyle={{
+                        color: '#9AA0A6',
+                        fontSize: 14
+                    }}
+                    itemTextStyle={{
+                        fontSize: 14,
+                        color: '#333'
+                    }}
+                    placeholder="Select Branch"
+                    data={branchOptions}
+                    labelField="label"
+                    valueField="value"
+                    value={selectedBranch}
+                    onChange={item => setSelectedBranch(item.value)}
+                    maxHeight={220}
+                />
 
-                                {/* HEADER */}
+                {filteredData.length === 0 ? (
+                    <Text style={{ textAlign: 'center', marginTop: 20 }}>
+                        No Data Found
+                    </Text>
+                ) : (
+                    <FlatList
+                        data={filteredData}
+                        keyExtractor={(item) => item.enquiryId.toString()}
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        renderItem={({ item }) => (
+                            <TouchableOpacity
+                                activeOpacity={0.85}
+                                onPress={() => {
+                                    setSelectedItem(item);
+                                    setIsModalVisible(true);
+                                }}
+                            >
                                 <View style={{
-                                    flexDirection: 'row',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center'
+                                    backgroundColor: '#FFFFFF',
+                                    borderRadius: 20,
+                                    padding: 16,
+                                    marginBottom: 14,
+
+                                    shadowColor: '#000',
+                                    shadowOffset: { width: 0, height: 6 },
+                                    shadowOpacity: 0.08,
+                                    shadowRadius: 10,
+                                    elevation: 4,
+
+                                    borderWidth: 1,
+                                    borderColor: '#F0F0F0'
                                 }}>
-                                    <View>
-                                        <Text style={{
-                                            fontSize: 17,
-                                            fontWeight: '700',
-                                            color: '#111'
-                                        }}>
-                                            {item.candidateName}
-                                        </Text>
-
-
-                                    </View>
-
-                                    {/* Status Badge (Optional Premium Touch) */}
                                     <View style={{
-                                        backgroundColor: '#EEF4FF',
-                                        paddingHorizontal: 10,
-                                        paddingVertical: 4,
-                                        borderRadius: 12
+                                        flexDirection: 'row',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center'
                                     }}>
-                                        <Text style={{
-                                            fontSize: 11,
-                                            color: '#3B82F6',
-                                            fontWeight: '600'
+                                        <View>
+                                            <Text style={{
+                                                fontSize: 17,
+                                                fontWeight: '700',
+                                                color: '#111'
+                                            }}>
+                                                {item.candidateName}
+                                            </Text>
+                                        </View>
+
+                                        <View style={{
+                                            backgroundColor: '#EEF4FF',
+                                            paddingHorizontal: 10,
+                                            paddingVertical: 4,
+                                            borderRadius: 12
                                         }}>
-                                            {item.status}
-
-                                        </Text>
+                                            <Text style={{
+                                                fontSize: 11,
+                                                color: '#3B82F6',
+                                                fontWeight: '600'
+                                            }}>
+                                                {item.status}
+                                            </Text>
+                                        </View>
                                     </View>
-                                </View>
 
-                                {/* DIVIDER */}
                                 <View style={{
                                     height: 1,
                                     backgroundColor: '#F2F2F2',
                                     marginVertical: 12
                                 }} />
 
-                                {/* CONTACT INFO */}
                                 <View style={{ gap: 6 }}>
                                     <Text style={{
                                         fontSize: 13,
@@ -278,7 +276,6 @@ export default function EnquiryListScreen() {
                                     </Text>
                                 </View>
 
-                                {/* CHIPS */}
                                 <View style={{
                                     flexDirection: 'row',
                                     flexWrap: 'wrap',
@@ -302,7 +299,6 @@ export default function EnquiryListScreen() {
                                     </View>
                                 </View>
 
-                                {/* FOOTER */}
                                 <View style={{
                                     flexDirection: 'row',
                                     justifyContent: 'space-between',
@@ -332,37 +328,33 @@ export default function EnquiryListScreen() {
                                     </View>
                                 </View>
 
-                            </View>
-                        </TouchableOpacity>
-                    )}
-                />
+                                </View>
+                            </TouchableOpacity>
+                        )}
+                    />
+                )}
 
+                <Modal
+                    isVisible={isModalVisible}
+                    onBackdropPress={() => setIsModalVisible(false)}
+                    animationIn="zoomIn"
+                    animationOut="zoomOut"
+                    backdropOpacity={0.4}
+                >
+                    <View style={{
+                        backgroundColor: '#FFFFFF',
+                        borderRadius: 24,
+                        paddingTop: 20,
+                        paddingBottom: 10,
+                        maxHeight: '85%',
 
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 10 },
+                        shadowOpacity: 0.1,
+                        shadowRadius: 20,
+                        elevation: 8,
+                    }}>
 
-            )}
-
-            <Modal
-                isVisible={isModalVisible}
-                onBackdropPress={() => setIsModalVisible(false)}
-                animationIn="zoomIn"
-                animationOut="zoomOut"
-                backdropOpacity={0.4}
-            >
-                <View style={{
-                    backgroundColor: '#FFFFFF',
-                    borderRadius: 24,
-                    paddingTop: 20,
-                    paddingBottom: 10,
-                    maxHeight: '85%',
-
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 10 },
-                    shadowOpacity: 0.1,
-                    shadowRadius: 20,
-                    elevation: 8,
-                }}>
-
-                    {/* HEADER */}
                     <View style={{
                         paddingHorizontal: 20,
                         paddingBottom: 12,
@@ -378,7 +370,6 @@ export default function EnquiryListScreen() {
                         </Text>
                     </View>
 
-                    {/* CLOSE BUTTON */}
                     <TouchableOpacity
                         onPress={() => setIsModalVisible(false)}
                         style={{
@@ -402,7 +393,6 @@ export default function EnquiryListScreen() {
                         </Text>
                     </TouchableOpacity>
 
-                    {/* CONTENT */}
                     <ScrollView
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={{
@@ -412,8 +402,6 @@ export default function EnquiryListScreen() {
                     >
                         {selectedItem && (
                             <>
-
-                                {/* PERSONAL INFO */}
                                 <View style={styles.sectionCard}>
                                     <Text style={styles.sectionHeading}>Personal Information</Text>
 
@@ -433,7 +421,6 @@ export default function EnquiryListScreen() {
                                     </View>
                                 </View>
 
-                                {/* COURSE INFO */}
                                 <View style={styles.sectionCard}>
                                     <Text style={styles.sectionHeading}>Course Details</Text>
 
@@ -448,7 +435,6 @@ export default function EnquiryListScreen() {
                                     </View>
                                 </View>
 
-                                {/* ENQUIRY INFO */}
                                 <View style={styles.sectionCard}>
                                     <Text style={styles.sectionHeading}>Enquiry Information</Text>
 
@@ -478,12 +464,23 @@ export default function EnquiryListScreen() {
                     </ScrollView>
 
                 </View>
-            </Modal>
-        </View>
+                </Modal>
+            </View>
+        </PrivateLayout>
     );
 }
 
 const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+
+    loaderWrap: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+
     sectionCard: {
         backgroundColor: '#FAFBFC',
         borderRadius: 16,

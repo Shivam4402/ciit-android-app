@@ -30,6 +30,7 @@ const DRAWER_WIDTH = 280;
 const NAV_ITEMS = [
     { label: 'Dashboard', routeName: 'Dashboard', icon: 'dashboard' },
     { label: 'Students List', routeName: 'StudentsList', icon: 'groups' },
+    {label: 'Enquiries', routeName: 'EnquiryList', icon: 'question-answer' },
 ];
 
 const getStudentPhoto = (student) =>
