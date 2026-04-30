@@ -19,7 +19,8 @@ import PrivateLayout from '../../../components/PrivateLayout';
 import {
   generateStudentExamReportCertificate,
   getStudentExamReport,
-  getStudentWiseBatchDetails,
+  // getStudentWiseBatchDetails,
+  getStudentRegistrationDetails,
 } from '../services/studentPortalApi';
 import { STUDENT_NAV_ITEMS } from '../shared/studentNavItems';
 
@@ -76,12 +77,16 @@ const StudentExamReportScreen = () => {
       return [];
     }
 
-    const batches = safeArray(await getStudentWiseBatchDetails(studentId));
-    const ids = batches
-      .map((batch) => toNumber(getValue(batch?.registrationId, batch?.RegistrationId)))
-      .filter((id) => id > 0);
+    try {
+      const registration = await getStudentRegistrationDetails(studentId);
+      if (registration?.registrationId) {
+        return [toNumber(registration.registrationId)];
+      }
+    } catch (error) {
+      console.log('Error resolving registration id:', error);
+    }
 
-    return Array.from(new Set(ids));
+    return [];
   };
 
   const loadReport = async (showLoader = true) => {
@@ -205,54 +210,76 @@ const StudentExamReportScreen = () => {
     return typeof response === 'string' ? response : '';
   };
 
+  const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
   const downloadCertificate = async (item) => {
     const actionKey = `${item.id}:download`;
     setLoadingActionKey(actionKey);
 
     try {
+      // 🔹 STEP 1: Immediate feedback
+      Toast.show({
+        type: 'info',
+        text1: 'Preparing certificate...',
+        text2: 'Please wait while we generate your PDF',
+      });
+
       const base64 = await getCertificateBase64(item);
       if (!base64) {
         throw new Error('Certificate payload missing');
       }
 
-      const fileName = `${sanitizeFileName(`${studentName}_${item.topicName}_Result_Certificate_${item.id}`)}.pdf`;
+      const fileName = `${sanitizeFileName(
+        `${studentName}_${item.topicName}_Result_Certificate_${item.id}`
+      )}.pdf`;
 
+      let filePath = '';
+
+      // 🔹 STEP 2: Download
       if (Platform.OS === 'android') {
         const dirs = ReactNativeBlobUtil.fs.dirs;
-        const path = `${dirs.DownloadDir}/${fileName}`;
+        filePath = `${dirs.DownloadDir}/${fileName}`;
 
-        await ReactNativeBlobUtil.fs.writeFile(path, base64, 'base64');
-        await ReactNativeBlobUtil.fs.scanFile([{ path, mime: 'application/pdf' }]);
+        await ReactNativeBlobUtil.fs.writeFile(filePath, base64, 'base64');
+        await ReactNativeBlobUtil.fs.scanFile([{ path: filePath, mime: 'application/pdf' }]);
 
         await ReactNativeBlobUtil.android.addCompleteDownload({
           title: fileName,
           description: 'Exam Report Certificate',
           mime: 'application/pdf',
-          path,
+          path: filePath,
           showNotification: true,
         });
-
-        // Open instantly after download
-        await ReactNativeBlobUtil.android.actionViewIntent(path, 'application/pdf');
       } else {
-        // iOS fallback: save to cache and open share sheet
-        const path = `${RNFS.CachesDirectoryPath}/${fileName}`;
-        await RNFS.writeFile(path, base64, 'base64');
+        filePath = `${RNFS.CachesDirectoryPath}/${fileName}`;
+        await RNFS.writeFile(filePath, base64, 'base64');
+      }
+
+      // 🔹 STEP 3: Success feedback BEFORE opening
+      Toast.show({
+        type: 'success',
+        text1: 'Download Complete',
+        text2: 'Opening your certificate...',
+      });
+
+      // 🔹 STEP 4: Smooth delay
+      await sleep(500);
+
+      // 🔹 STEP 5: Open
+      if (Platform.OS === 'android') {
+        await ReactNativeBlobUtil.android.actionViewIntent(filePath, 'application/pdf');
+      } else {
         await Share.open({
-          url: `file://${path}`,
+          url: `file://${filePath}`,
           type: 'application/pdf',
           filename: fileName,
           failOnCancel: false,
         });
       }
 
-      Toast.show({
-        type: 'success',
-        text1: 'Download Complete',
-        text2: 'Certificate downloaded and opened.',
-      });
     } catch (downloadError) {
       console.log('Certificate download/open error:', downloadError);
+
       Toast.show({
         type: 'error',
         text1: 'Download failed',
@@ -263,21 +290,44 @@ const StudentExamReportScreen = () => {
     }
   };
 
+
   const shareCertificate = async (item) => {
     const actionKey = `${item.id}:share`;
     setLoadingActionKey(actionKey);
 
     try {
+      // 🔹 STEP 1: Immediate feedback
+      Toast.show({
+        type: 'info',
+        text1: 'Preparing certificate...',
+        text2: 'Please wait while we generate your PDF',
+      });
+
       const base64 = await getCertificateBase64(item);
       if (!base64) {
         throw new Error('Certificate payload missing');
       }
 
-      const fileName = `${sanitizeFileName(`${studentName}_${item.topicName}_Result_Certificate_${item.id}`)}.pdf`;
+      const fileName = `${sanitizeFileName(
+        `${studentName}_${item.topicName}_Result_Certificate_${item.id}`
+      )}.pdf`;
+
       const path = `${RNFS.CachesDirectoryPath}/${fileName}`;
 
+      // 🔹 STEP 2: Write file
       await RNFS.writeFile(path, base64, 'base64');
 
+      // 🔹 STEP 3: Success feedback
+      Toast.show({
+        type: 'success',
+        text1: 'Ready to Share',
+        text2: 'Opening share options...',
+      });
+
+      // 🔹 STEP 4: Smooth delay
+      await sleep(500);
+
+      // 🔹 STEP 5: Open share sheet
       await Share.open({
         url: `file://${path}`,
         type: 'application/pdf',
@@ -285,8 +335,10 @@ const StudentExamReportScreen = () => {
         failOnCancel: false,
         useInternalStorage: true,
       });
+
     } catch (shareError) {
       console.log('Certificate share error:', shareError);
+
       Toast.show({
         type: 'error',
         text1: 'Share failed',
@@ -296,7 +348,6 @@ const StudentExamReportScreen = () => {
       setLoadingActionKey('');
     }
   };
-
   if (loading) {
     return (
       <PrivateLayout title="Exam Report" navItems={STUDENT_NAV_ITEMS}>
@@ -389,26 +440,50 @@ const StudentExamReportScreen = () => {
 
                 <View style={styles.actionRow}>
                   <TouchableOpacity
-                    style={styles.downloadBtn}
+                    style={[
+                      styles.downloadBtn,
+                      loadingActionKey === `${item.id}:download` && { opacity: 0.7 }
+                    ]}
                     onPress={() => downloadCertificate(item)}
-                    disabled={loadingActionKey !== ''}
+                    disabled={loadingActionKey === `${item.id}:download`}
                     activeOpacity={0.88}
                   >
                     <View style={styles.btnContent}>
-                      <MaterialIcons name="download" size={18} color="#FFFFFF" />
-                      <Text style={styles.downloadText}>Download</Text>
+                      {loadingActionKey === `${item.id}:download` ? (
+                        <>
+                          <ActivityIndicator size="small" color="#FFFFFF" />
+                          <Text style={styles.downloadText}> Preparing...</Text>
+                        </>
+                      ) : (
+                        <>
+                          <MaterialIcons name="download" size={18} color="#FFFFFF" />
+                          <Text style={styles.downloadText}> Download</Text>
+                        </>
+                      )}
                     </View>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={styles.shareBtn}
+                    style={[
+                      styles.shareBtn,
+                      loadingActionKey === `${item.id}:share` && { opacity: 0.7 }
+                    ]}
                     onPress={() => shareCertificate(item)}
-                    disabled={loadingActionKey !== ''}
+                    disabled={loadingActionKey === `${item.id}:share`}
                     activeOpacity={0.88}
                   >
                     <View style={styles.btnContent}>
-                      <MaterialIcons name="share" size={18} color="#2563EB" />
-                      <Text style={styles.shareText}>Share</Text>
+                      {loadingActionKey === `${item.id}:share` ? (
+                        <>
+                          <ActivityIndicator size="small" color="#2563EB" />
+                          <Text style={styles.shareText}> Preparing...</Text>
+                        </>
+                      ) : (
+                        <>
+                          <MaterialIcons name="share" size={18} color="#2563EB" />
+                          <Text style={styles.shareText}> Share</Text>
+                        </>
+                      )}
                     </View>
                   </TouchableOpacity>
                 </View>

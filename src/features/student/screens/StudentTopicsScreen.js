@@ -11,7 +11,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import PrivateLayout from '../../../components/PrivateLayout';
-import { getStudentCourseTopics, getStudentWiseBatchDetails } from '../services/studentPortalApi';
+import { getStudentCourseTopics, getStudentWiseBatchDetails, getStudentRegistrationDetails } from '../services/studentPortalApi';
 import { STUDENT_NAV_ITEMS } from '../shared/studentNavItems';
 import { getVideosByFolder } from '../../../services/videoApi';
 
@@ -43,23 +43,25 @@ const StudentTopicsScreen = () => {
   const resolveRegistrationId = async () => {
     const directRegistrationId = toNumber(getValue(student?.RegistrationId, student?.registrationId));
     if (directRegistrationId > 0) {
-      return directRegistrationId;
+      return [directRegistrationId];
     }
 
     if (!studentId) {
-      return 0;
+      return [];
     }
 
-    const batches = safeArray(await getStudentWiseBatchDetails(studentId));
-    const firstRegistrationId = toNumber(
-      getValue(
-        batches[0]?.registrationId,
-        batches[0]?.RegistrationId,
-      ),
-    );
+    try {
+      const registration = await getStudentRegistrationDetails(studentId);
+      if (registration?.registrationId) {
+        return [toNumber(registration.registrationId)];
+      }
+    } catch (error) {
+      console.log('Error resolving registration id:', error);
+    }
 
-    return firstRegistrationId;
+    return [];
   };
+
 
   const loadFolderVideoCounts = async (topicList) => {
     const entries = await Promise.all(

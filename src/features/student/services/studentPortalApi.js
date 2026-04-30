@@ -78,6 +78,28 @@ export const getStudentBatchExams = async (registrationId) => {
     }
 };
 
+
+
+export const getStudentRegistrationDetails = async (studentId) => {
+    try {
+        if (!studentId) return [];
+
+        const response = await axiosClient.get(`/student-registrations/student-registration-details/${studentId}`);
+        if (response?.data && response.data.data !== undefined) {
+            return response.data.data || [];
+        }
+
+        return response?.data || [];
+    } catch (error) {
+        if (error?.response?.status === 404) {
+            return [];
+        }
+        console.log('Error fetching student registration details:', error);
+        throw error;
+    }
+};
+
+
 export const getStudentCourseTopics = async (registrationId) => {
     try {
         if (!registrationId) return null;

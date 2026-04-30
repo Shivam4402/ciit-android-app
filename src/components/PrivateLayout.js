@@ -31,6 +31,7 @@ const NAV_ITEMS = [
     { label: 'Dashboard', routeName: 'Dashboard', icon: 'dashboard' },
     { label: 'Students List', routeName: 'StudentsList', icon: 'groups' },
     {label: 'Enquiries', routeName: 'EnquiryList', icon: 'question-answer' },
+    {label: 'Certification', routeName: 'Certification', icon: 'verified-user' },
 ];
 
 const getStudentPhoto = (student) =>

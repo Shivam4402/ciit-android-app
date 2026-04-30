@@ -67,6 +67,8 @@ const getStatusConfig = (dueFee, status) => {
   };
 };
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 const StudentFeeDetailsScreen = () => {
   const student = useSelector((state) => state.auth.student);
   const studentId = student?.StudentId || student?.studentId;
@@ -75,8 +77,10 @@ const StudentFeeDetailsScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [registrations, setRegistrations] = useState([]);
-  const [loadingId, setLoadingId] = useState(null);
-
+  const [loadingState, setLoadingState] = useState({
+    id: null,
+    type: null, // 'download' | 'share'
+  });
 
   const loadFeeData = async (showLoader = true) => {
     if (!studentId) {
@@ -180,53 +184,33 @@ const StudentFeeDetailsScreen = () => {
   const downloadPDF = async (item, base64) => {
     try {
       const fileName = `${item.courseName}_Invoice_${Date.now()}.pdf`;
+      let filePath = '';
 
       if (Platform.OS === 'android') {
         const dirs = ReactNativeBlobUtil.fs.dirs;
-        const path = `${dirs.DownloadDir}/${fileName}`;
+        filePath = `${dirs.DownloadDir}/${fileName}`;
 
-        // Save file
-        await ReactNativeBlobUtil.fs.writeFile(path, base64, 'base64');
+        await ReactNativeBlobUtil.fs.writeFile(filePath, base64, 'base64');
+        await ReactNativeBlobUtil.fs.scanFile([{ path: filePath, mime: 'application/pdf' }]);
 
-        // Make visible to Downloads/MediaStore
-        await ReactNativeBlobUtil.fs.scanFile([{ path, mime: 'application/pdf' }]);
-
-        // Register in Downloads (notification)
         await ReactNativeBlobUtil.android.addCompleteDownload({
           title: fileName,
           description: 'Course Fee Invoice',
           mime: 'application/pdf',
-          path,
+          path: filePath,
           showNotification: true,
         });
 
-        // Open instantly
-        await ReactNativeBlobUtil.android.actionViewIntent(path, 'application/pdf');
-
-        Toast.show({
-          type: 'success',
-          text1: 'Download Complete',
-          text2: 'PDF downloaded and opened.',
-        });
-        return;
+        return { filePath, fileName };
       }
 
       // iOS fallback
-      const iosPath = `${RNFS.CachesDirectoryPath}/${fileName}`;
-      await RNFS.writeFile(iosPath, base64, 'base64');
-      await Share.open({
-        url: `file://${iosPath}`,
-        type: 'application/pdf',
-        filename: fileName,
-        failOnCancel: false,
-      });
+      filePath = `${RNFS.CachesDirectoryPath}/${fileName}`;
+      await RNFS.writeFile(filePath, base64, 'base64');
+      return { filePath, fileName };
     } catch (error) {
-      console.log('Download/Open error:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: 'Unable to download/open PDF',
-      });
+      console.log('Download error:', error);
+      throw error;
     }
   };
 
@@ -255,20 +239,40 @@ const StudentFeeDetailsScreen = () => {
     return response.data;
   };
 
+  const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
   const sharePDF = async (item) => {
     try {
+      // 🔹 STEP 1: Immediate feedback
+      Toast.show({
+        type: 'info',
+        text1: 'Preparing file...',
+        text2: 'Please wait a moment',
+      });
+
       const base64 = await getPDFBase64(item);
+
+      if (!base64) {
+        throw new Error('Invalid PDF data');
+      }
 
       const fileName = `${item.courseName}_${Date.now()}.pdf`;
       const path = `${RNFS.CachesDirectoryPath}/${fileName}`;
 
+      // 🔹 STEP 2: Write file
       await RNFS.writeFile(path, base64, 'base64');
 
-      const exists = await RNFS.exists(path);
-      console.log('File exists:', exists);
+      // 🔹 STEP 3: Success feedback
+      Toast.show({
+        type: 'success',
+        text1: 'Ready to Share',
+        text2: 'Opening share options...',
+      });
 
-      if (!exists) throw new Error('File not created');
+      // 🔹 STEP 4: Smooth delay (natural feel)
+      await sleep(500);
 
+      // 🔹 STEP 5: Open share sheet
       await Share.open({
         url: 'file://' + path,
         type: 'application/pdf',
@@ -279,12 +283,67 @@ const StudentFeeDetailsScreen = () => {
 
     } catch (error) {
       console.log('Share Error:', error);
+
+      Toast.show({
+        type: 'error',
+        text1: 'Share failed',
+        text2: 'Something went wrong while preparing file',
+      });
     }
   };
 
   const downloadPDFHandler = async (item) => {
-    const base64 = await getPDFBase64(item);
-    await downloadPDF(item, base64); // MediaStore logic
+    try {
+      // 🔹 STEP 1: Immediate feedback
+      Toast.show({
+        type: 'info',
+        text1: 'Preparing invoice...',
+        text2: 'Please wait while we generate your PDF',
+      });
+
+      const base64 = await getPDFBase64(item);
+
+      if (!base64) {
+        throw new Error('Invalid PDF data');
+      }
+
+      // 🔹 STEP 2: Download file
+      const { filePath, fileName } = await downloadPDF(item, base64);
+
+      // 🔹 STEP 3: Success feedback
+      Toast.show({
+        type: 'success',
+        text1: 'Download Complete',
+        text2: 'Opening your invoice...',
+      });
+
+      // 🔹 STEP 4: Smooth delay
+      await sleep(500);
+
+      // 🔹 STEP 5: Open file
+      if (Platform.OS === 'android') {
+        await ReactNativeBlobUtil.android.actionViewIntent(
+          filePath,
+          'application/pdf'
+        );
+      } else {
+        await Share.open({
+          url: `file://${filePath}`,
+          type: 'application/pdf',
+          filename: fileName,
+          failOnCancel: false,
+        });
+      }
+
+    } catch (error) {
+      console.log('Download/Open error:', error);
+
+      Toast.show({
+        type: 'error',
+        text1: 'Download failed',
+        text2: 'Unable to download or open PDF',
+      });
+    }
   };
 
   if (loading) {
@@ -402,32 +461,57 @@ const StudentFeeDetailsScreen = () => {
 
                   {/* Download - Primary */}
                   <TouchableOpacity
-                    style={[styles.downloadBtn]}
+                    style={[
+                      styles.downloadBtn,
+                      loadingState.id === item.id && loadingState.type === 'download' && { opacity: 0.7 }
+                    ]}
                     onPress={async () => {
-                      setLoadingId(item.id);
+                      setLoadingState({ id: item.id, type: 'download' });
                       await downloadPDFHandler(item);
-                      setLoadingId(null);
+                      setLoadingState({ id: null, type: null });
                     }}
-                    disabled={loadingId === item.id}
+                    disabled={loadingState.id === item.id && loadingState.type === 'download'}
                   >
                     <View style={styles.btnContent}>
-                      <MaterialIcons name="download" size={18} color="#fff" />
-                      <Text style={styles.downloadText}>Download</Text>
+                      {loadingState.id === item.id && loadingState.type === 'download' ? (
+                        <>
+                          <ActivityIndicator size="small" color="#fff" />
+                          <Text style={styles.downloadText}> Preparing...</Text>
+                        </>
+                      ) : (
+                        <>
+                          <MaterialIcons name="download" size={18} color="#fff" />
+                          <Text style={styles.downloadText}> Download</Text>
+                        </>
+                      )}
                     </View>
                   </TouchableOpacity>
 
                   {/* Share - Secondary */}
                   <TouchableOpacity
-                    style={[styles.shareBtn]}
+                    style={[
+                      styles.shareBtn,
+                      loadingState.id === item.id && loadingState.type === 'share' && { opacity: 0.7 }
+                    ]}
                     onPress={async () => {
-                      setLoadingId(item.id);
+                      setLoadingState({ id: item.id, type: 'share' });
                       await sharePDF(item);
-                      setLoadingId(null);
+                      setLoadingState({ id: null, type: null });
                     }}
+                    disabled={loadingState.id === item.id && loadingState.type === 'share'}
                   >
                     <View style={styles.btnContent}>
-                      <MaterialIcons name="share" size={18} color="#2563EB" />
-                      <Text style={styles.shareText}>Share</Text>
+                      {loadingState.id === item.id && loadingState.type === 'share' ? (
+                        <>
+                          <ActivityIndicator size="small" color="#2563EB" />
+                          <Text style={styles.shareText}> Preparing...</Text>
+                        </>
+                      ) : (
+                        <>
+                          <MaterialIcons name="share" size={18} color="#2563EB" />
+                          <Text style={styles.shareText}> Share</Text>
+                        </>
+                      )}
                     </View>
                   </TouchableOpacity>
 
