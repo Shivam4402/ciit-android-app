@@ -284,127 +284,185 @@ const downloadCertificate = async () => {
     );
   }
 
+  const showEmptyState = selectedStudent && !loadingReport && reportItems.length === 0;
+  const showExamList = selectedStudent && !loadingReport && reportItems.length > 0;
+
   return (
     <PrivateLayout title="Certification">
-      <View style={styles.container}>
-        <Text style={styles.label}>Branch</Text>
-        <Dropdown
-          data={branchOptions}
-          labelField="label"
-          valueField="value"
-          placeholder="Select branch"
-          value={selectedBranch}
-          onChange={(item) => {
-            setSelectedBranch(item.value);
-            setSelectedStudent(null);
-          }}
-          style={styles.dropdown}
-          selectedTextStyle={styles.selectedText}
-          placeholderStyle={styles.placeholder}
-        />
-
-        <Text style={[styles.label, { marginTop: 16 }]}>Student</Text>
-        <Dropdown
-          data={studentOptions}
-          labelField="label"
-          valueField="value"
-          placeholder={selectedBranch ? 'Select student' : 'Select branch first'}
-          value={selectedStudent}
-          onChange={(item) => setSelectedStudent(item.value)}
-          style={styles.dropdown}
-          selectedTextStyle={styles.selectedText}
-          placeholderStyle={styles.placeholder}
-          disable={!selectedBranch}
-          search
-            searchPlaceholder="Search Student..."
-            maxHeight={300}
-        />
-
-        {selectedStudentObj ? (
-          <View style={styles.detailCard}>
-
-            {reportItems.length > 0 ? (
-              <TouchableOpacity
-                style={[styles.downloadBtn, loadingAction && styles.downloadBtnDisabled]}
-                onPress={downloadCertificate}
-                disabled={loadingAction}
-                activeOpacity={0.88}
-              >
-                <View style={styles.btnContent}>
-                  <MaterialIcons name="download" size={18} color="#FFFFFF" />
-                  <Text style={styles.downloadText}>{loadingAction ? 'Downloading...' : 'Download Certificate'}</Text>
-                </View>
-              </TouchableOpacity>
-            ) : null}
+      <View style={styles.screenContainer}>
+        <View style={styles.fixedSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionSubtitle}>Select branch and student to view results</Text>
           </View>
-        ) : null}
 
-        {loadingReport ? (
-          <View style={styles.loaderWrap}>
-            <ActivityIndicator size="large" color="#2563EB" />
-            <Text style={styles.loaderText}>Loading exam report...</Text>
-          </View>
-        ) : null}
-
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-        {selectedStudent && !loadingReport ? (
-          reportItems.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>No exam report found</Text>
-              <Text style={styles.emptyText}>This student has no submitted exams yet.</Text>
-            </View>
-          ) : (
-            <FlatList
-              data={reportItems}
-              keyExtractor={(item) => item.id}
-              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-              contentContainerStyle={styles.listContent}
-              showsVerticalScrollIndicator={false}
-              renderItem={({ item }) => (
-                <View style={styles.card}>
-                  <View style={styles.cardHeader}>
-                    <View style={styles.cardTitleWrap}>
-                      <Text style={styles.topicName}>{item.topicName}</Text>
-                      <Text style={styles.examDate}>{formatDate(item.examDate)}</Text>
-                    </View>
-                    <View style={styles.gradePill}>
-                      <Text style={styles.gradeText}>{item.grade}</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.infoGrid}>
-                    <View style={styles.infoBox}>
-                      <Text style={styles.infoLabel}>Total</Text>
-                      <Text style={styles.infoValue}>{item.totalQuestions}</Text>
-                    </View>
-                    <View style={styles.infoBox}>
-                      <Text style={styles.infoLabel}>Correct</Text>
-                      <Text style={[styles.infoValue, styles.successText]}>{item.correctQuestions}</Text>
-                    </View>
-                    <View style={styles.infoBox}>
-                      <Text style={styles.infoLabel}>Wrong</Text>
-                      <Text style={[styles.infoValue, styles.dangerText]}>{item.wrongQuestions}</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.scoreRow}>
-                    <Text style={styles.scoreLabel}>Score</Text>
-                    <Text style={styles.scoreValue}>{formatPercent(item.percentage)}</Text>
-                  </View>
-
-                  <View style={styles.progressTrack}>
-                    <View style={[styles.progressFill, { width: `${Math.max(0, Math.min(item.percentage, 100))}%` }]} />
-                  </View>
-
-                  <Text style={styles.timeText}>
-                    Time: {item.startTime || 'N/A'} - {item.endTime || 'N/A'}
-                  </Text>
-                </View>
-              )}
+          <View style={styles.sectionCard}>
+            <Text style={styles.label}>Branch</Text>
+            <Dropdown
+              data={branchOptions}
+              labelField="label"
+              valueField="value"
+              placeholder="Select branch"
+              value={selectedBranch}
+              onChange={(item) => {
+                setSelectedBranch(item.value);
+                setSelectedStudent(null);
+              }}
+              style={[styles.dropdown, !selectedBranch && styles.dropdownActive]}
+              selectedTextStyle={styles.selectedText}
+              placeholderStyle={styles.placeholder}
             />
-          )
-        ) : null}
+
+            <Text style={[styles.label, { marginTop: 16 }]}>Student</Text>
+            <Dropdown
+              data={studentOptions}
+              labelField="label"
+              valueField="value"
+              placeholder={selectedBranch ? 'Select student' : 'Select branch first'}
+              value={selectedStudent}
+              onChange={(item) => setSelectedStudent(item.value)}
+              style={[styles.dropdown, !selectedBranch && styles.dropdownDisabled]}
+              selectedTextStyle={styles.selectedText}
+              placeholderStyle={styles.placeholder}
+              disable={!selectedBranch}
+              search
+              searchPlaceholder="Search student"
+              maxHeight={320}
+            />
+            {!selectedBranch ? <Text style={styles.helperText}>Choose a branch to unlock student list.</Text> : null}
+          </View>
+
+          {selectedStudentObj ? (
+            <View style={styles.detailCard}>
+              <View style={styles.detailRow}>
+                <View>
+                  <Text style={styles.detailMeta}>Course certificate & exam performance</Text>
+                </View>
+              </View>
+
+              {reportItems.length > 0 ? (
+                <TouchableOpacity
+                  style={[styles.downloadBtn, loadingAction && styles.downloadBtnDisabled]}
+                  onPress={downloadCertificate}
+                  disabled={loadingAction}
+                  activeOpacity={0.88}
+                >
+                  <View style={styles.btnContent}>
+                    <MaterialIcons name="download" size={18} color="#FFFFFF" />
+                    <Text style={styles.downloadText}>{loadingAction ? 'Downloading...' : 'Download Certificate'}</Text>
+                  </View>
+                </TouchableOpacity>
+              ) : (
+                <Text style={styles.helperText}>Certificate unlocks after the first exam attempt.</Text>
+              )}
+            </View>
+          ) : null}
+        </View>
+
+        {selectedStudent ? (
+          <FlatList
+            data={showExamList ? reportItems : []}
+            keyExtractor={(item) => item.id}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            contentContainerStyle={styles.listContent}
+            style={styles.listContainer}
+            showsVerticalScrollIndicator={false}
+            ListHeaderComponent={
+              <View>
+                {selectedStudentObj ? (
+                  <View style={styles.summaryCard}>
+                    <View style={styles.summaryHeader}>
+                      <Text style={styles.summaryTitle}>Performance Summary</Text>
+                      <Text style={styles.summarySubtitle}>Latest exam insights</Text>
+                    </View>
+                    <View style={styles.summaryRow}>
+                      <View style={styles.summaryItem}>
+                        <Text style={styles.summaryValue}>{summary.totalExams}</Text>
+                        <Text style={styles.summaryLabel}>Exams</Text>
+                      </View>
+                      <View style={styles.summaryItem}>
+                        <Text style={styles.summaryValue}>{formatPercent(summary.avgPercentage)}</Text>
+                        <Text style={styles.summaryLabel}>Avg score</Text>
+                      </View>
+                      <View style={styles.summaryItem}>
+                        <Text style={styles.summaryValue}>{summary.excellentCount}</Text>
+                        <Text style={styles.summaryLabel}>Excellent</Text>
+                      </View>
+                    </View>
+                  </View>
+                ) : null}
+
+                {loadingReport ? (
+                  <View style={styles.loaderWrap}>
+                    <ActivityIndicator size="large" color="#2563EB" />
+                    <Text style={styles.loaderText}>Loading exam report...</Text>
+                  </View>
+                ) : null}
+
+                {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+                {showExamList ? (
+                  <View style={styles.listWrap}>
+                    <View style={styles.sectionHeader}>
+                      <Text style={styles.sectionTitle}>Exam History</Text>
+                      <Text style={styles.sectionSubtitle}>Latest submissions listed first</Text>
+                    </View>
+                  </View>
+                ) : null}
+              </View>
+            }
+            ListEmptyComponent={
+              showEmptyState ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyTitle}>No exam report found</Text>
+                  <Text style={styles.emptyText}>This student has no submitted exams yet.</Text>
+                </View>
+              ) : null
+            }
+            renderItem={({ item }) => (
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.cardTitleWrap}>
+                    <Text style={styles.topicName}>{item.topicName}</Text>
+                    <Text style={styles.examDate}>{formatDate(item.examDate)}</Text>
+                  </View>
+                  <View style={styles.gradePill}>
+                    <Text style={styles.gradeText}>{item.grade}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.infoGrid}>
+                  <View style={styles.infoBox}>
+                    <Text style={styles.infoLabel}>Total</Text>
+                    <Text style={styles.infoValue}>{item.totalQuestions}</Text>
+                  </View>
+                  <View style={styles.infoBox}>
+                    <Text style={styles.infoLabel}>Correct</Text>
+                    <Text style={[styles.infoValue, styles.successText]}>{item.correctQuestions}</Text>
+                  </View>
+                  <View style={styles.infoBox}>
+                    <Text style={styles.infoLabel}>Wrong</Text>
+                    <Text style={[styles.infoValue, styles.dangerText]}>{item.wrongQuestions}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.scoreRow}>
+                  <Text style={styles.scoreLabel}>Score</Text>
+                  <Text style={styles.scoreValue}>{formatPercent(item.percentage)}</Text>
+                </View>
+
+                <View style={styles.progressTrack}>
+                  <View style={[styles.progressFill, { width: `${Math.max(0, Math.min(item.percentage, 100))}%` }]} />
+                </View>
+
+                <Text style={styles.timeText}>
+                  Time: {item.startTime || 'N/A'} - {item.endTime || 'N/A'}
+                </Text>
+              </View>
+            )}
+          />
+        ) : (
+          <View style={styles.listPlaceholder} />
+        )}
       </View>
     </PrivateLayout>
   );
@@ -413,9 +471,29 @@ const downloadCertificate = async () => {
 export default CertificationScreen;
 
 const styles = StyleSheet.create({
-  container: { padding: 14, flex: 1 },
+  screenContainer: { flex: 1, backgroundColor: '#F8FAFC' },
+  fixedSection: { padding: 16, paddingBottom: 0 },
+  listContainer: { flex: 1 },
+  listContent: { paddingHorizontal: 16, paddingBottom: 40, paddingTop: 8 },
+  listPlaceholder: { flex: 1 },
   loaderWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loaderText: { marginTop: 10, color: '#64748B', fontSize: 13 },
+  sectionHeader: { marginBottom: 10 },
+  // sectionTitle: { fontSize: 16, fontWeight: '800', color: '#0F172A' },
+  sectionSubtitle: { marginTop: 2, color: '#64748B', fontSize: 12, fontWeight: '600' },
+  sectionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 12,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
+  },
   dropdown: {
     height: 48,
     backgroundColor: '#FFFFFF',
@@ -424,19 +502,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ECEFF3',
   },
+  dropdownActive: { borderColor: '#CBD5F5' },
+  dropdownDisabled: { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' },
   selectedText: { color: '#111', fontSize: 14 },
   placeholder: { color: '#9AA0A6', fontSize: 14 },
   label: { fontSize: 13, color: '#334155', fontWeight: '700', marginBottom: 8 },
+  helperText: { marginTop: 8, color: '#94A3B8', fontSize: 12, fontWeight: '600' },
   detailCard: {
-    marginTop: 18,
+    marginTop: 12,
     padding: 12,
     backgroundColor: '#fff',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
-  detailTitle: { fontSize: 15, fontWeight: '800', color: '#0F172A' },
-  detailMeta: { color: '#64748B', marginTop: 4 },
+  detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  detailMeta: { color: '#64748B', marginTop: 4, fontSize: 12, fontWeight: '600' },
+
   downloadBtn: {
     marginTop: 14,
     backgroundColor: '#16A34A',
@@ -452,6 +534,29 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   downloadText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  summaryCard: {
+    marginTop: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  summaryHeader: { marginBottom: 12 },
+  summaryTitle: { fontSize: 15, fontWeight: '800', color: '#0F172A' },
+  summarySubtitle: { marginTop: 2, fontSize: 12, color: '#64748B', fontWeight: '600' },
+  summaryRow: { flexDirection: 'row', gap: 10 },
+  summaryItem: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  summaryValue: { fontSize: 16, fontWeight: '800', color: '#0F172A' },
+  summaryLabel: { marginTop: 2, fontSize: 11, fontWeight: '600', color: '#64748B' },
   errorText: { marginTop: 12, color: '#B91C1C', fontSize: 13, fontWeight: '600' },
   emptyState: {
     marginTop: 14,
@@ -464,7 +569,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { fontSize: 15, fontWeight: '700', color: '#0F172A', marginBottom: 6 },
   emptyText: { textAlign: 'center', color: '#64748B', fontSize: 14 },
-  listContent: { paddingTop: 10, paddingBottom: 20 },
+  listWrap: { marginTop: 8 },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
