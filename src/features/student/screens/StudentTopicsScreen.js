@@ -13,7 +13,7 @@ import { useSelector } from 'react-redux';
 import PrivateLayout from '../../../components/PrivateLayout';
 import { getStudentCourseTopics, getStudentWiseBatchDetails, getStudentRegistrationDetails } from '../services/studentPortalApi';
 import { STUDENT_NAV_ITEMS } from '../shared/studentNavItems';
-import { getVideosByFolder } from '../../../services/videoApi';
+import { getVideosByPlaylist } from '../../../services/videoApi';
 
 const getValue = (...values) => values.find((value) => value !== undefined && value !== null);
 const safeArray = (value) => (Array.isArray(value) ? value : []);
@@ -68,11 +68,14 @@ const StudentTopicsScreen = () => {
       safeArray(topicList).map(async (topic) => {
         const folderId = getValue(topic?.publicFolderId, topic?.PublicFolderId);
         const key = String(folderId || '');
+
         if (!folderId) return [key, 0];
 
         try {
-          const list = await getVideosByFolder(folderId);
-          return [key, Array.isArray(list) ? list.length : 0];
+          const res = await getVideosByPlaylist(folderId);
+
+          return [key, res?.totalCount || 0]; // ✅ FIXED
+
         } catch {
           return [key, 0];
         }
@@ -82,6 +85,7 @@ const StudentTopicsScreen = () => {
     setVideoCounts(Object.fromEntries(entries));
   };
 
+  
   const loadTopics = async (showLoader = true) => {
     if (!studentId) {
       setCourseInfo(null);

@@ -33,6 +33,7 @@
     "react-native-share": "^12.2.6",
     "react-native-toast-message": "^2.3.3",
     "react-native-webview": "^13.16.1",
+    "react-native-youtube-iframe": "^2.4.1",
     "react-redux": "^9.2.0"
   },
   "devDependencies": {

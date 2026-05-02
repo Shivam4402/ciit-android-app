@@ -8,9 +8,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { WebView } from 'react-native-webview';
+import YoutubePlayer from "react-native-youtube-iframe";
 import Toast from 'react-native-toast-message';
-import { getVideosByFolder } from '../services/videoApi';
+import { getVideosByPlaylist } from '../services/videoApi';
 
 const COLORS = {
   primary: '#1D4ED8',
@@ -31,22 +31,43 @@ const toMinutesLabel = (seconds) => {
 };
 
 const PlayerScreen = ({ route }) => {
-  const folderId = route?.params?.folderId;
+  const playlistId = route?.params?.folderId;
   const courseName = route?.params?.courseName || 'Course';
   const topicName = route?.params?.topicName || 'Topic';
 
   const [videos, setVideos] = useState([]);
   const [selectedVideo, setSelectedVideo] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const flatListRef = useRef(null);
+  const [nextToken, setNextToken] = useState(null);
+
+  const loadMoreVideos = async () => {
+  if (!nextToken || loadingMore) return;
+
+  try {
+    setLoadingMore(true);
+
+    const res = await getVideosByPlaylist(playlistId, nextToken);
+
+    setVideos(prev => [...prev, ...res.videos]);  
+    setNextToken(res.nextPageToken);              
+
+  } catch (err) {
+    console.log("Load more error:", err);
+  } finally {
+    setLoadingMore(false);
+  }
+};
 
   const fetchVideos = useCallback(async () => {
-    if (!folderId) {
+    if (!playlistId) {
       setVideos([]);
       setSelectedVideo(null);
-      setError('Folder not found for this topic.');
+      setError('Playlist not found for this topic.');
       setLoading(false);
       return;
     }
@@ -55,13 +76,15 @@ const PlayerScreen = ({ route }) => {
       setLoading(true);
       setError('');
 
-      const data = await getVideosByFolder(folderId);
-      const normalized = Array.isArray(data) ? data : [];
+      const res = await getVideosByPlaylist(playlistId);
 
-      setVideos(normalized);
-      setSelectedVideo(normalized[0] || null);
+      setVideos(res.videos);
+      setSelectedVideo(res.videos[0] || null);
+      setNextToken(res.nextPageToken);;
+      setTotalCount(res.totalCount);
 
-      if (!normalized.length) {
+
+      if (!res.videos || res.videos.length === 0) {
         Toast.show({
           type: 'info',
           text1: 'No Videos',
@@ -80,43 +103,12 @@ const PlayerScreen = ({ route }) => {
     } finally {
       setLoading(false);
     }
-  }, [folderId]);
+  }, [playlistId]);
 
   useEffect(() => {
     fetchVideos();
   }, [fetchVideos]);
 
-  const getVideoHtml = useCallback(
-    (videoId) => `
-      <html>
-        <head>
-          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-          <style>
-            html, body {
-              margin: 0;
-              padding: 0;
-              width: 100%;
-              height: 100%;
-              background: #000;
-              overflow: hidden;
-            }
-            .frame-wrap { position: absolute; inset: 0; }
-            iframe { width: 100%; height: 100%; border: 0; }
-          </style>
-        </head>
-        <body>
-          <div class="frame-wrap">
-            <iframe
-              src="https://player.vimeo.com/video/${videoId}?autoplay=1&title=0&byline=0&portrait=0&badge=0&pip=0&dnt=1"
-              allow="autoplay; fullscreen; picture-in-picture"
-              allowfullscreen
-            ></iframe>
-          </div>
-        </body>
-      </html>
-    `,
-    [],
-  );
 
   const handleSelectVideo = useCallback((item, index) => {
     setSelectedVideo(item);
@@ -129,8 +121,8 @@ const PlayerScreen = ({ route }) => {
 
   const nowPlayingSubtitle = useMemo(() => {
     if (!selectedVideo) return '';
-    return `${toMinutesLabel(selectedVideo?.duration)} • ${videos.length} videos`;
-  }, [selectedVideo, videos.length]);
+    return ` • ${totalCount} videos`;
+  }, [selectedVideo, totalCount]);
 
   if (loading) {
     return (
@@ -171,13 +163,13 @@ const PlayerScreen = ({ route }) => {
       <View style={styles.playerShell}>
         <View style={styles.playerContainer}>
           {selectedVideo ? (
-            <WebView
-              source={{ html: getVideoHtml(selectedVideo.videoId) }}
-              style={styles.webview}
-              javaScriptEnabled
-              domStorageEnabled
-              allowsFullscreenVideo
-              originWhitelist={['*']}
+            <YoutubePlayer
+              height={220}
+              play={true}
+              videoId={selectedVideo?.videoId}
+              onChangeState={(state) => {
+                console.log("Player State:", state);
+              }}
             />
           ) : null}
         </View>
@@ -199,7 +191,7 @@ const PlayerScreen = ({ route }) => {
       <View style={styles.listHeaderRow}>
         <Text style={styles.sectionHeader}>Course Content</Text>
         <View style={styles.countPill}>
-          <Text style={styles.countPillText}>{videos.length}</Text>
+          <Text style={styles.countPillText}>{totalCount}</Text>
         </View>
       </View>
 
@@ -209,6 +201,12 @@ const PlayerScreen = ({ route }) => {
         keyExtractor={(item, index) => String(item?.videoId ?? index)}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+
+        onEndReached={loadMoreVideos}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          loadingMore ? <ActivityIndicator size="small" /> : null
+        }
         renderItem={({ item, index }) => {
           const isActive = selectedVideo?.videoId === item?.videoId;
 
@@ -232,7 +230,9 @@ const PlayerScreen = ({ route }) => {
                 <Text style={styles.videoTitle} numberOfLines={2}>
                   {item?.title || 'Untitled video'}
                 </Text>
-                <Text style={styles.duration}>{toMinutesLabel(item?.duration)}</Text>
+                <Text style={styles.duration}>
+                  Video
+                </Text>
               </View>
 
               {isActive ? (
