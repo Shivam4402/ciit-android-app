@@ -12,7 +12,7 @@ import {
 import Modal from 'react-native-modal';
 import { Dropdown } from 'react-native-element-dropdown';
 import PrivateLayout from '../../../components/PrivateLayout';
-import { getAllStudents, getBranches } from '../services/studentApi';
+import { getAllStudents, getBranches } from '../services/staffPortalApi';
 
 const getValue = (...values) => values.find((value) => value !== undefined && value !== null);
 

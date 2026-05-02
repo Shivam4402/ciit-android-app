@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
 import PublicNavigator from './PublicNavigator';
-import PrivateNavigator from './PrivateNavigator';
+import PrivateNavigator from './StaffPrivateNavigator';
 import StudentPrivateNavigator from './StudentPrivateNavigator';
 
 

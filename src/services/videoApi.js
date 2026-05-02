@@ -41,7 +41,7 @@ export const getVideosByPlaylist = async (playlistId, pageToken = "") => {
       throw new Error("Playlist ID is missing");
     }
 
-    let url = `/vimeo/youtube/${playlistId}`;
+    let url = `/youtube/video-playlist/${playlistId}`;
 
     if (pageToken) {
       url += `?pageToken=${pageToken}`;

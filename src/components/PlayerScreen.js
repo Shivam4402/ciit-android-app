@@ -230,9 +230,9 @@ const PlayerScreen = ({ route }) => {
                 <Text style={styles.videoTitle} numberOfLines={2}>
                   {item?.title || 'Untitled video'}
                 </Text>
-                <Text style={styles.duration}>
+                {/* <Text style={styles.duration}>
                   Video
-                </Text>
+                </Text> */}
               </View>
 
               {isActive ? (

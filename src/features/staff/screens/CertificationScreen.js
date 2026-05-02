@@ -12,7 +12,7 @@ import {
   getAllStudents,
   getStudentExamReportByStudentId,
   generateCourseCertificate,
-} from '../services/studentApi';
+} from '../services/staffPortalApi';
 
 const getValue = (...values) => values.find((v) => v !== undefined && v !== null);
 const safeArray = (value) => (Array.isArray(value) ? value : []);
