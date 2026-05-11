@@ -2,13 +2,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Linking,
   RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import PrivateLayout from '../../../components/PrivateLayout';
 import { getStudentCourseTopics, getStudentWiseBatchDetails, getStudentRegistrationDetails } from '../services/studentPortalApi';
@@ -29,7 +29,6 @@ const formatCountLabel = (count, singular, plural) => {
 };
 
 const StudentTopicsScreen = () => {
-  const navigation = useNavigation();
   const student = useSelector((state) => state.auth.student);
   const studentId = getValue(student?.StudentId, student?.studentId);
 
@@ -149,6 +148,26 @@ const StudentTopicsScreen = () => {
     }
   };
 
+  const openYouTubePlaylist = async (playlistId) => {
+    if (!playlistId) return;
+
+    const sanitizedId = encodeURIComponent(String(playlistId));
+    const appUrl = `vnd.youtube://playlist?list=${sanitizedId}`;
+    const webUrl = `https://www.youtube.com/playlist?list=${sanitizedId}`;
+
+    try {
+      const canOpenApp = await Linking.canOpenURL(appUrl);
+      if (canOpenApp) {
+        await Linking.openURL(appUrl);
+        return;
+      }
+
+      await Linking.openURL(webUrl);
+    } catch (openError) {
+      setError('Unable to open YouTube right now. Please try again later.');
+    }
+  };
+
   const topicItems = useMemo(() => {
     return safeArray(topics).map((topic, index) => {
       const publicFolderId = getValue(topic?.publicFolderId, topic?.PublicFolderId);
@@ -258,13 +277,7 @@ const StudentTopicsScreen = () => {
                   activeOpacity={0.85}
                   disabled={!isAvailable}
                   style={[styles.card, !isAvailable ? styles.cardDisabled : null]}
-                  onPress={() =>
-                    navigation.navigate('CoursePlayer', {
-                      folderId: item.publicFolderId,
-                      courseName: courseInfo?.courseName || item.topicName,
-                      topicName: item.topicName,
-                    })
-                  }
+                  onPress={() => openYouTubePlaylist(item.publicFolderId)}
                 >
                   <View style={[styles.topAccent, isAvailable ? styles.topAccentReady : styles.topAccentPending]} />
 
